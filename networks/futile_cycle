@@ -1,0 +1,6 @@
+//Futile cycle
+//Try: ./bin/reacreport networks/futile_cycle
+E + S0 <-> ES0
+ES0 -> E + S1 
+F + S1 <-> FS1
+FS1 -> F + S0

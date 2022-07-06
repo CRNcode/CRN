@@ -1,0 +1,15 @@
+#"Up to isomorphism, there are 14,670 dynamically nontrivial, bimolecular $(3,4,3)$ networks. These fall into 9,259 dynamically non-equivalent classes."
+#The first step can take some time (be patient)
+
+../bin/genbimol -fDNgenuine networks/s3r4DNG.d6 3 4
+../bin/filterCRNs networks/s3r4DNG.d6 networks/s3r4DNGrank3.d6 3 4 rank 3
+../bin/filterCRNs networks/s3r4DNGrank3.d6 networks/s3r4DNGrank3_DI.d6 3 4 dynisomorphMA
+
+#"Out of the 14,670 dynamically nontrivial $(3,4,3)$ CRNs, exactly 10,853 are nondegenerate. These fall into 6,486 dynamically non-equivalent classes."
+
+../bin/filterCRNs networks/s3r4DNGrank3.d6 networks/s3r4DNGrank3ND.d6 3 4 notMAdegenerate
+../bin/filterCRNs networks/s3r4DNGrank3ND.d6 networks/s3r4DNGrank3ND_DI.d6 3 4 dynisomorphMA
+
+#Count the networks
+wc -l networks/s3r4DNG.d6 networks/s3r4DNGrank3.d6 networks/s3r4DNGrank3_DI.d6 networks/s3r4DNGrank3ND.d6 networks/s3r4DNGrank3ND_DI.d6
+

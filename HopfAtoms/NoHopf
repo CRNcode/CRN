@@ -1,0 +1,35 @@
+#"Computational implementation of the conditions detailed above gives us the following Theorem about bimolecular $(3,4,3)$ systems."
+
+#networks where Q is not negative semidefinite
+../bin/filterCRNs networks/s3r4DNGrank3ND.d6 networks/s3r4DNGrank3ND_A.d6 3 4 notQMAnegsemidef 0
+../bin/filterCRNs networks/s3r4DNGrank3ND_A.d6 networks/s3r4DNGrank3ND_A_DI.d6 3 4 dynisomorphMA
+
+#networks where J^2 is notP0
+../bin/filterCRNs networks/s3r4DNGrank3ND_A.d6 networks/s3r4DNGrank3ND_AB.d6 3 4 notJMAsquaredisP0 0
+../bin/filterCRNs networks/s3r4DNGrank3ND_AB.d6 networks/s3r4DNGrank3ND_AB_DI.d6 3 4 dynisomorphMA
+
+#networks where det(J^[2]) can take all signs
+../bin/filterCRNs networks/s3r4DNGrank3ND_AB.d6 networks/s3r4DNGrank3ND_ABC.d6 3 4 notJMAcomp2detsigned 1
+../bin/filterCRNs networks/s3r4DNGrank3ND_ABC.d6 networks/s3r4DNGrank3ND_ABC_DI.d6 3 4 dynisomorphMA
+
+#networks where we can't confirm that det(J^2+I)>0
+../bin/filterCRNs networks/s3r4DNGrank3ND_ABC.d6 networks/s3r4DNGrank3ND_ABCD.d6 3 4 notJ2pIMAdetpos 0
+../bin/filterCRNs networks/s3r4DNGrank3ND_ABCD.d6 networks/s3r4DNGrank3ND_ABCD_DI.d6 3 4 dynisomorphMA
+
+#We can also quickly confirm that all the networks with potential Hopf admit an imaginary pair of eigenvalues at equilibrium
+../bin/filterCRNs networks/s3r4DNGrank3ND_ABCD.d6 tempfiles/tmp.d6 3 4 JMAadmitsIpair 2
+
+#Remove the exceptional network(s) to leave only those with nondegenerate
+#Hopf bifurcation
+../bin/compareCRNlists networks/s3r4DNGrank3ND_ABCD.d6 networks/s3r4exceptional.d6 3 4 networks/s3r4Hopf.d6
+../bin/compareCRNlists networks/s3r4DNGrank3ND_ABCD_DI.d6 networks/s3r4exceptional.d6 3 4 networks/s3r4Hopf_DI.d6
+
+###Check the canonical forms match
+#../bin/filterCRNs networks/s3r4Hopf_87_canonical.d6 networks/s3r4Hopf_87_canonical_DI.d6 3 4 dynisomorphMA
+#../bin/compareCRNlists networks/s3r4DNGrank3ND_ABCD_DI.d6 networks/s3r4Hopf_87_canonical_DI.d6 3 4
+#../bin/filterCRNs networks/s3r4Hopf_canonical.d6 networks/s3r4Hopf_canonical_DI.d6 3 4 dynisomorphMA
+#../bin/compareCRNlists networks/s3r4Hopf_DI.d6 networks/s3r4Hopf_canonical_DI.d6 3 4
+
+
+#Count
+wc -l networks/s3r4DNGrank3ND_A.d6 networks/s3r4DNGrank3ND_A_DI.d6 networks/s3r4DNGrank3ND_AB.d6 networks/s3r4DNGrank3ND_AB_DI.d6 networks/s3r4DNGrank3ND_ABC.d6 networks/s3r4DNGrank3ND_ABC_DI.d6 networks/s3r4DNGrank3ND_ABCD.d6 networks/s3r4DNGrank3ND_ABCD_DI.d6 networks/s3r4Hopf.d6 networks/s3r4Hopf_DI.d6

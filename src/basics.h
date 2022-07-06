@@ -25,6 +25,8 @@ using namespace GiNaC;
 int sgn(int i);
 int par(int k);
 int gcd(int a, int b);
+int gcd(int *a, unsigned long num);
+void gcdlist(int *lstin, unsigned long num, int *lstout);
 int isend(char c);
 bool iseven(int *vec, int n);
 int binltoint(bool *vec, int l);

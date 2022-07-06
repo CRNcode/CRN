@@ -1,0 +1,4 @@
+//(y-x^2)^2 + (y-x-1)^2. Strictly +ve SOS, but heuristic only finds nonnegative
+//fails: ./bin/polytest -fposall -e0 data/SOSbutstrict
+//succeeds: ./bin/polytest -fposall -e1 data/SOSbutstrict
+2*y^2-2*x^2*y-2*x*y+2*y+x^4+x^2-2*x+1

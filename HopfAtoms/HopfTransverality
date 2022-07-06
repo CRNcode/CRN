@@ -1,0 +1,4 @@
+#"All the Hopf bifurcations, in both the nondegenerate and degenerate cases, are unfolded by the rate constants."
+
+../bin/filterCRNs networks/s3r4DNGrank3ND_ABCD_DI.d6 tempfiles/tmp.d6 3 4 JMAcomp2detnonstationary 1
+

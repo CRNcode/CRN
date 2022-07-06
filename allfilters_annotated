@@ -1,0 +1,151 @@
+
+//General filters
+*rank: rank of network (requires the rank)
+*notrank: rank not equal to (requires the rank)
+DN or dynnontriv:  dynamically nontrivial (a strictly positive vector in the kernel of the irreversible stoichiometric matrix)
+notDN or notdynnontriv: not dynamically nontrivial
+bdclass: bounded stoichiometric classes 
+notbdclass: unbounded stoichiometric classes 
+WR: weakly reversible
+notWR: not weakly reversible
+PNconnect: a connected Petri-Net graph (i.e. can't decompose the network)
+notPNconnect: disconnected Petri-Net graph (decomposable network)
+*deficiency: networks with given deficiency (requires the deficiency) 
+*notdeficiency: network with deficiency different to given (requires the deficiency) 
+genuine: networks in which every species participates in at least one reaction 
+notgenuine: networks in which some species participates in no reactions 
+structpersist: the network has no critical siphons
+notstructpersist: the networks has critical siphons 
+endotactic: the network is endotactic
+notendotactic: the network fails to be endotactic
+strongendo: strongly endotactic
+notstrongendo: not strongly endotactic
+printsiphons: pseudotest to print out the siphons of a network
+molecularity: pseudotest to print out a report on the molecularities of the reactions in the network
+repeatedreacs: the network has repeated reactions
+notrepeatedreacs: the network has no repeated reactions
+repeatedreacs: the network has "redundant" reactions with reactant vectors in the nonnegative span of others on the same reactant complex
+notredundantreacs: the network has no "redundant" reactions
+PGKnormal (also notstructdiscord): "normal" for positive general kinetics, i.e. not structurally discordant
+notPGKnormal (also structdiscord): structurally discordant: not normal for positive general kinetics (Jacobian matrix acting on stoichiometric subspace is identically singular)
+
+
+//The following are relevant to CRNs with general kinetics
+//J is the GK Jacobian matrix which factorises as J=SV
+//Some are self-explanatory
+concord or concordant: J is a homeomorphism of the stoichiometric subspace
+notconcord or notconcordant: J is not a homeomorphism of the stoichiometric subspace
+DSRCondStarBoth: DSR graph satisfies Condition * (either before or after trying to merge reactions)
+notDSRCondStarBoth: DSR graph fails Condition * (both before and after trying to merge reactions)
+accord or accordant: J is a P0- matrix
+notaccord or notaccordant: J is not a P0- matrix
+*JsquaredisP0: J^2 is a P0 matrix
+*notJsquaredisP0: cannot confirm that J^2 is a P0 matrix
+
+DSR2CondStarBoth: DSR^[2] graph satisfies Condition * (either before or after trying to merge reactions)
+notDSR2CondStarBoth: DSR^[2] graph fails Condition * (both before and after trying to merge reactions)
+*Jcomp2isP0minus: J^[2] is a P0- matrix
+*notJcomp2isP0minus: cannot confirm that J^[2] is a P0- matrix
+*Jcomp2isP0: J^[2] is a P0 matrix
+*notJcomp2isP0: cannot confirm that J^[2] is a P0 matrix
+*Jcomp2nonsing: J^[2] is nonsingular
+*notJcomp2nonsing: cannot confirm that J^[2] is nonsingular 
+*Jcomp2detsigned: J^[2] has signed determinant
+*notJcomp2detsigned: cannot confirm that J^[2] has signed determinant
+*Jcomp2detunsigned: J^[2] has determinant which takes all signs
+*notJcomp2detunsigned: cannot confirm whether J^[2] has determinant which takes all signs
+
+*JadmitsIpair: J admits a pair of imaginary eigenvalues
+*notJadmitsIpair: cannot confirm that J admits a pair of imaginary eigenvalues
+*J2pIdetpos: J^2+I is nonsingular
+*notJ2pIdetpos: cannot confirm that J^2+I is nonsingular
+
+//The following are associated with mass action systems - here J is the 
+//special form of the MA Jacobian matrix at equilibria
+//Q is the first factor in the natural decomposition J=QD, 
+//where D is a diagonal matrix of unknowns
+normal
+notnormal 
+MAdegenerate: all equilibria are degenerate
+notMAdegenerate: not all equilibria are degenerate
+semiconcord or semiconcordant
+notsemiconcord or notsemiconcordant 
+*MAeqconcord: J is a local homeomorphism on stoichiometric classes
+*notMAeqconcord: J could not be confirmed to be a local homeomorphism on stoichiometric classes
+semiaccord or semiaccordant
+notsemiaccord or notsemiaccordant
+*MAeqaccord: J is a P0- matrix
+*notMAeqaccord: cannot confirm that J is a P0- matrix
+*QMAnegsemidef: Q is negative semidefinite (hence J is in the closure of the Hurwitz matrices)
+*notQMAnegsemidef: Q cannot be confirmed to be negative semidefinite
+
+
+*JMAadmitsIpair: J admits a pair of imaginary eigenvalues
+*notJMAadmitsIpair: cannot confirm that J admits a pair of imaginary eigenvalues
+
+DSR2MA1CondStar: for the special case where Q is a numerical matrix, the DSR^[2] graph associated with the factorisation J=QD satisfies Condition * (i.e., J^[2] is a P0- matrix)
+notDSR2MA1CondStar: for the special case where Q is a numerical matrix, we cannot confirm that the DSR^[2] graph associated with the factorisation J=QD satisfies Condition *.
+*JMAcomp2isP0minus: J^[2] is a P0- matrix
+*notJMAcomp2isP0minus: cannot confirm that J^[2] is a P0- matrix
+*JMAcomp2isP0: J^[2] is a P0 matrix
+*notJMAcomp2isP0: cannot confirm that J^[2] is a P0 matrix
+*JMAcomp2nonsing: J^[2] is nonsingular
+*notJMAcomp2nonsing: cannot confirm that J^[2] is nonsingular
+*JMAcomp2detsigned: J^[2] has signed determinant
+*notJMAcomp2detsigned: cannot confirm that J^[2] has signed determinant
+JMAcomp2detunsigned: J^[2] has determinant taking all signs
+notJMAcomp2detunsigned: cannot confirm that J^[2] has determinant taking all signs
+*JMAsquaredisP0: J^2 is a P0 matrix
+*notJMAsquaredisP0: could not confirm if J^2 is a P0 matrix
+
+*J2pIMAdetpos: J^2+I is nonsingular
+*notJ2pIMAdetpos: cannot confirm that J^2+I is nonsingular
+
+*notMABTbif: the two lowest order nontrivial coefficients in the characteristic polynomial of J are never simultaneously zero
+*MABTbif: The negation of notMABTbif: these networks potentially admit Bogdanov-Takens bifurcations with mass action kinetics. 
+
+
+*MAeqdegen2: The second lowest order nontrivial coefficient in the characteristic polynomial of J can have all signs
+*notMAeqdegen2: We cannot confirm that the second lowest order nontrivial coefficient in the characteristic polynomial of J can have all signs
+
+*JMAcomp2detnonstationary: partial derivatives of det(J^[2]) in terms of x are never simultaneously zero
+*notJMAcomp2detnonstationary: cannot confirm that partial derivatives of det(J^[2]) in terms of x are never simultaneously zero
+
+//isomorphism filters
+dynisomorphMA: returns a unique representative in each equivalence class with MA kinetics (shortest reaction vectors)
+dynisomorphGK: returns unique representative in each equivalence class with GK kinetics
+
+
+//pseudofilters
+*JMArealspec: prints out information on the real spectrum of the mass action Jacobian matrix at equilibria
+linkageclasses: prints the number of linkage classes to stdout
+deficiency: prints the deficiency to stdout
+printsiphons: prints the siphons to stdout
+molecularity: prints a report on the molecularity to stdout
+getfacestruct: examines the facial structure of the reactant polytope
+
+//deprecated
+*Jnonsing: J is nonsingular
+*notJnonsing: cannot confirm that J is nonsingular
+JMAsingular: J is identically singular
+notJMAsingular: J is not identically singular
+*JMAnonsing: J is always nonsingular
+*notJMAnonsing: cannot confirm that J is always nonsingular
+*JMAisP0: J is a P0 matrix
+*notJMAisP0: J cannot be confirmed to be a P0 matrix
+
+//unlikely to want, but kept for testing/debugging
+*concord1: concordant (the version which uses symbolic algebra)
+*notconcord1: not concordant (the version which uses symbolic algebra)
+*QMAnegdef: Q is negative definite (hence J is Hurwitz)
+*notQMAnegdef: Q cannot be confirmed to be negative definite
+*QMApossemidef: Q is positive semidefinite (hence -J is in the closure of the Hurwitz matrices)
+*notQMApossemidef: Q cannot be confirmed to be positive semidefinite
+DSRCondStar: the DSR graph satisfies Condition * (with no processing). So the system is accordant.
+notDSRCondStar: the DSR graph fails Condition * (with no processing). 
+DSRCondStarRev: the DSR graph satisfies Condition * (after trying to merge reactions)
+notDSRCondStarRev: the DSR graph fails Condition * (after trying to merge reactions)
+DSR2CondStar: the DSR^[2] graph satisfies Condition * (no manipulation)
+notDSR2CondStar: the DSR^[2] graph fails Condition * (no manipulation)
+DSR2CondStarRev: the DSR^[2] graph satisfies Condition * (after trying to merge reactions)
+notDSR2CondStarRev: the DSR^[2] graph fails Condition * (after trying to merge reactions)

@@ -57,6 +57,38 @@ int gcd(int a, int b){
   return a;
 }
 
+//overloading: allow integers <=0, and a list of arbitrary length
+int gcd(int *a, unsigned long num){
+  unsigned long i=0;
+  int g=1;//in case of only zeros
+  if(num<=0){
+    fprintf(stderr, "ERROR in gcd: requires at least one integer. EXITING.\n");
+    exit(0);
+  }
+
+  while(i<num-1 && a[i]==0)//skip initial zeros
+    i++;
+  if(a[i])
+    g=abs(a[i]);
+  while(i<num-1){
+    if(a[i+1])//nonzero
+      g=gcd(g,abs(a[i+1]));
+    i++;
+  }
+
+  return g;
+}
+
+//replace an integer list with integers divided by their gcd
+//(assumed memory already allocated)
+void gcdlist(int *lstin, unsigned long num, int *lstout){
+  unsigned long s;
+  int g=gcd(lstin,num);
+  for(s=0;s<num;s++)
+    lstout[s]=lstin[s]/g;
+  return;
+}
+
 // a binary number of length l in reverse order to a base 10 integer
 // base10(...) is the version for binary strings in forward order
 int binltoint(bool *vec, int l){
