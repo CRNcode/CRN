@@ -745,8 +745,14 @@ int dynamicshortfile(const char *infile, const char *outfile, const char *flag, 
       str1=reducenn1(str,n,m);
     else if(!(strcmp(flag, "MA")))
       str1=dynamic_isomorphMA(str, n, m);
-    else
+    else if(!(strcmp(flag, "GK")))
       str1=dynamic_isomorphGK(str, n, m);
+    else if(!(strcmp(flag, "nofilter")))//Just remove isomorphs
+      str1=strdup(str);
+    else{
+      fprintf(stderr, "ERROR in dynamicshortfile - filter \"%s\" not recognised.\n", flag);
+      exit(0);
+    }
 
 
     fprintf(fd1, "%s\n", str1);
@@ -1098,7 +1104,7 @@ bool CRNsubset(const char *file1, const char *file2, const char *file3, const ch
     fprintf(stderr, "networks in the intersection of \"%s\" and \"%s\" written to \"%s\"\n", file1, file2, file5);
   }
 
-  fprintf(stderr, "\t%s: %ld\n\t%s: %ld\n\tnetworks in %s but not in %s: %ld\n\tnetworks in %s but not in %s: %ld\n", file1, sz1, file2, sz2, file1, file2, sz3, file2, file1, sz4);
+  fprintf(stderr, "\t%s: %ld\n\t%s: %ld\n\tnetworks in \"%s\" but not in \"%s\": %ld\n\tnetworks in \"%s\" but not in \"%s\": %ld\n", file1, sz1, file2, sz2, file1, file2, sz3, file2, file1, sz4);
 
   if(sz3==0 && sz4==0){
     fprintf(stdout, "\"%s\" and \"%s\" contain the same reactions.\n\n", file1, file2);
@@ -1162,6 +1168,8 @@ unsigned long **readisomorphtable(char *fname, unsigned long *tot){
 }
 
 //Remember: NAUTY produces output offset at 1, not 0.
+// uses the unsigned long version of isinarray where indices begin at
+//1, not 0.
 unsigned long getallisomorphs(char *isotablefile, char *infilepre, char *infileDI, char *infile, char *outfile, unsigned long *numin){
   unsigned long **table;
   unsigned long p=0, q, k, tot=0;
@@ -1186,6 +1194,7 @@ unsigned long getallisomorphs(char *isotablefile, char *infilepre, char *infileD
 
   for(p=0;p<(*numin);p++){//Each input network
     if((q=isinarray(DIarray,numDI,inarray[p]))){//lots of searching, so can be slow: how to speed up? Assume ordered?
+      fprintf(stderr, "q = %ld\n", q);
       for(k=0;k<table[q-1][0]-1;k++){
 	if(table[q-1][k+2] > numpre){
 	  fprintf(stderr, "Index too large in getallisomorphs: something went wrong. EXITING.\n");exit(0);

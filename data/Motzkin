@@ -1,3 +1,4 @@
 //Motzkin polynomial
+//Do not alter this file
 //Try: ./bin/polytest -e3 data/Motzkin
 x^4*y^2+x^2*y^4-3*x^2*y^2+1

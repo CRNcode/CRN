@@ -1,7 +1,7 @@
 
 //General filters
-*rank: rank of network (requires the rank)
-*notrank: rank not equal to (requires the rank)
+*rank: rank of network (requires the rank as an additional argument)
+*notrank: rank not equal to (requires the rank as an additional argument)
 DN or dynnontriv:  dynamically nontrivial (a strictly positive vector in the kernel of the irreversible stoichiometric matrix)
 notDN or notdynnontriv: not dynamically nontrivial
 bdclass: bounded stoichiometric classes 
@@ -24,7 +24,7 @@ printsiphons: pseudotest to print out the siphons of a network
 molecularity: pseudotest to print out a report on the molecularities of the reactions in the network
 repeatedreacs: the network has repeated reactions
 notrepeatedreacs: the network has no repeated reactions
-repeatedreacs: the network has "redundant" reactions with reactant vectors in the nonnegative span of others on the same reactant complex
+redundantreacs: the network has "redundant" reactions with reactant vectors in the nonnegative span of others on the same reactant complex
 notredundantreacs: the network has no "redundant" reactions
 PGKnormal (also notstructdiscord): "normal" for positive general kinetics, i.e. not structurally discordant
 notPGKnormal (also structdiscord): structurally discordant: not normal for positive general kinetics (Jacobian matrix acting on stoichiometric subspace is identically singular)
@@ -33,8 +33,8 @@ notPGKnormal (also structdiscord): structurally discordant: not normal for posit
 //The following are relevant to CRNs with general kinetics
 //J is the GK Jacobian matrix which factorises as J=SV
 //Some are self-explanatory
-concord or concordant: J is a homeomorphism of the stoichiometric subspace
-notconcord or notconcordant: J is not a homeomorphism of the stoichiometric subspace
+concord or concordant: J is an isomorphism of the stoichiometric subspace
+notconcord or notconcordant: J is not an isomorphism of the stoichiometric subspace
 DSRCondStarBoth: DSR graph satisfies Condition * (either before or after trying to merge reactions)
 notDSRCondStarBoth: DSR graph fails Condition * (both before and after trying to merge reactions)
 accord or accordant: J is a P0- matrix
@@ -112,11 +112,16 @@ notJMAcomp2detunsigned: cannot confirm that J^[2] has determinant taking all sig
 *notJMAcomp2detnonstationary: cannot confirm that partial derivatives of det(J^[2]) in terms of x are never simultaneously zero
 
 //isomorphism filters
-dynisomorphMA: returns a unique representative in each equivalence class with MA kinetics (shortest reaction vectors)
+isomorph: returns a unique representative in each equivalence class
+dynisomorphMA: returns a unique representative in each "simple equivalence" class (shortest reaction vectors)
 dynisomorphGK: returns unique representative in each equivalence class with GK kinetics
 
 
 //pseudofilters
+printreacs: print the reactions in human readable form
+printJ: print the positive general kinetics Jacobian matrix
+printMAeq: print the mass action Jacobian matrix in canonical form (QD_z)
+printQ: print the first factor in the MA Jacobian matrix in canonical form ("Q")
 *JMArealspec: prints out information on the real spectrum of the mass action Jacobian matrix at equilibria
 linkageclasses: prints the number of linkage classes to stdout
 deficiency: prints the deficiency to stdout

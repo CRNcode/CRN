@@ -2237,7 +2237,7 @@ int *intersect(int **l, long *leftinds, int numleft, long *rightinds, int numrig
 
 // Check if a matrix is trivially a P matrix or a P0 matrix
 // Return 1 means P matrix, return 2 means P0
-// Just uses GiNAC flags on each minor (i.e., presumably all coeffs +ve)
+// Just uses GiNaC flags on each minor (i.e., presumably all coeffs +ve)
 
 int isPmatrix(matrix J, int n, int debug){
   int xc[n];
@@ -2579,29 +2579,27 @@ int polytest(ex tmp, int numv, int deg, int dcfs, const char *filter, int maxppp
 
   if(debug){fprintf(stderr, "\n###Entering polytest.\n");}
 
+  cerr << "Examining the polynomial:\n\t" << tmp << endl;
   if(!strcmp(filter,"factor") || !strcmp(filter,"all")){
     if(!dcfs){
       tmp1=factor(tmp);
       if(tmp1!=tmp){
-	if(debug || !strcmp(filter,"all")){
-	  cerr << "\nTrying to factorise (GiNAC): " << tmp << " = " << tmp1 << endl;
-	  if(isapower(tmp1)){
-	    tmp2=getroot(tmp1,&powval);
-	    cerr << "This polynomial is a power (" << powval << ") of another: " << tmp2 << endl;
-	  }
+	cerr << "\nTrying to factorise (GiNaC): " << tmp << " = " << tmp1 << endl;
+	if(isapower(tmp1)){
+	  tmp2=getroot(tmp1,&powval);
+	  cerr << "This polynomial is a power (" << powval << ") of another: " << tmp2 << endl;
 	}
 	if(strcmp(filter,"all"))
 	  return 1;//successfully factorised
       }
       else{
-	if(debug || !strcmp(filter,"all"))
-	  cerr << "Searching for a factorisation (GiNAC). None found.\n";
+	cerr << "Searched for a factorisation (GiNaC). None found.\n";
 	if(strcmp(filter,"all"))
 	  return 0;
       }
     }
     else{
-      fprintf(stderr, "Error in polytest: Will not try to factor a polynomial whose coefficients are not integers.\n");
+      fprintf(stderr, "Will not try to factor a polynomial whose coefficients are not integers.\n");
       if(strcmp(filter,"all"))
 	return 0;
     }
@@ -2609,90 +2607,88 @@ int polytest(ex tmp, int numv, int deg, int dcfs, const char *filter, int maxppp
 
   //Newton polytope
   if(!strcmp(filter,"newton") || !strcmp(filter,"all")){
-    if(debug){fprintf(stderr, "\n***Examining the Newton polytope.\n");}
+    fprintf(stderr, "\n**Examining the Newton polytope.\n");
     //don't debug unless desired
     ret=NewtonPolyVertSgn1(tmp, numv, &allflg, debugfull);
-    if(debug || !strcmp(filter,"all")){
-      fprintf(stderr,"The result of NewtonPolyVertSgn1: %d\n", ret);
-      fprintf(stderr, "This means that ");
-    }
+    fprintf(stderr,"The result of NewtonPolyVertSgn1: %d\n", ret);
+    fprintf(stderr, "This means that ");
     if(ret==0){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is zero.\n");}
+      fprintf(stderr, "this polynomial is zero.\n");
       if(strcmp(filter,"all"))
 	return 0;
     }
     else if(ret==1 && allflg){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "all terms are positive.\n");}
+      fprintf(stderr, "all terms are positive.\n");
       if(strcmp(filter,"all"))
 	return 2;
     }
     else if(ret==1 && !allflg){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "all vertex terms are positive (but not all terms are positive).\n");}
+      fprintf(stderr, "all vertex terms are positive (but not all terms are positive).\n");
       if(strcmp(filter,"all"))
 	return 1;
     }
     else if(ret==-1 && allflg){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "all terms are negative.\n");}
+      fprintf(stderr, "all terms are negative.\n");
       if(strcmp(filter,"all"))
 	return -2;
     }
     else if(ret==-1 && !allflg){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "all vertex terms are negative (but not all terms are negative).\n");}
+      fprintf(stderr, "all vertex terms are negative (but not all terms are negative).\n");
       if(strcmp(filter,"all"))
 	return -1;
     }
     
     else if(ret==2)
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "there are both positive and negative vertex monomials.\n");}
+      fprintf(stderr, "there are both positive and negative vertex monomials.\n");
     if(strcmp(filter,"all"))
       return -3;
   }
 
   //Heuristic attempt at SOS decomposition
   if(!strcmp(filter,"heuristic") || !strcmp(filter,"all")){
-    if(debug){fprintf(stderr, "\n***Trying a heuristic to find an SOS+positive+terms decomposition\n");}
+    fprintf(stderr, "\n**Trying a heuristic to find an SOS+(positive terms) decomposition\n");
     if(!dcfs){
       ret=heuristic_squares(tmp,numv,debugfull);
-      if(debug || !strcmp(filter,"all")){fprintf(stderr,"The result of heuristic_squares (homogenised polynomial): %d\nThis means that on the positive orthant ", ret);}
+      fprintf(stderr,"The result of heuristic_squares (homogenised polynomial): %d\nThis means that on the positive orthant ", ret);
       if(ret==0){
-	if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is zero.\n");}
+	fprintf(stderr, "this polynomial is zero.\n");
 	if(strcmp(filter,"all"))
 	  return 0;
       }
       else if(ret==1){
-	if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is nonnegative.\n");}
+	fprintf(stderr, "this polynomial is nonnegative.\n");
 	if(strcmp(filter,"all"))
 	  return 1;
       }
       else if(ret==-1){
-	if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is nonpositive.\n");}
+	fprintf(stderr, "this polynomial is nonpositive.\n");
 	if(strcmp(filter,"all"))
 	  return -1;
       }
       else if(ret==2){
-	if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is (strictly) positive.\n");}
+	fprintf(stderr, "this polynomial is (strictly) positive.\n");
 	if(strcmp(filter,"all"))
 	  return 2;
       }
       else if(ret==-2){
-	if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is (strictly) negative.\n");}
+	fprintf(stderr, "this polynomial is (strictly) negative.\n");
 	if(strcmp(filter,"all"))
 	  return -2;
       }
       else if(ret==-3){
-	if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is indefinite.\n");}
+	fprintf(stderr, "this polynomial can take all signs.\n");
 	if(strcmp(filter,"all"))
 	  return -3;
       }
       else{
-	if(debug || !strcmp(filter,"all")){fprintf(stderr, "the heuristic algorithm failed to find a simple SOS+positive terms decomposition.\n");}
+	fprintf(stderr, "the heuristic algorithm failed to find a simple SOS+(positive terms) decomposition.\n");
 	if(strcmp(filter,"all"))
 	  return -4;
       }
  
     }
     else{
-      fprintf(stderr, "Error in polytest: Will not try \"heuristic_squares\" on a polynomial whose coefficients are not integers.\n");
+      fprintf(stderr, "Will not try \"heuristic_squares\" on a polynomial whose coefficients are not integers.\n");
       return 0;
     }
   }
@@ -2702,45 +2698,45 @@ int polytest(ex tmp, int numv, int deg, int dcfs, const char *filter, int maxppp
   // Positive on the positive orthant?
   //
   if(!strcmp(filter,"posorth") || !strcmp(filter,"all")){
-    if(debug){fprintf(stderr, "\n***Examining the sign of the polynomial on the positive orthant using \"ispospoly\".\n");}
+    fprintf(stderr, "\n**Examining the sign of the polynomial on the positive orthant using \"ispospoly\".\n");
     ret=ispospoly(tmp,numv,&allflg,0,dcfs,maxpppdeg,&pppdegused,debugfull);
     if(ret==2 || ret==-2)
       sprintf(mesg, " (with SDP degree %d)", pppdegused);
     else
       sprintf(mesg, " (tried SDP up to degree %d)", maxpppdeg);
-    if(debug || !strcmp(filter,"all")){fprintf(stderr,"\nThe result of ispospoly%s: %d\nThis means that on the positive orthant ", maxpppdeg<0?" (not using SDP)":mesg, ret);}
+    fprintf(stderr,"The result of ispospoly%s: %d\nThis means that on the positive orthant ", maxpppdeg<0?" (not using SDP)":mesg, ret);
     if(ret==0){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is zero.\n");}
+      fprintf(stderr, "this polynomial is zero.\n");
       if(strcmp(filter,"all"))
 	return 0;
     }
     else if(ret==1){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is nonnegative.\n");}
+      fprintf(stderr, "this polynomial is nonnegative.\n");
       if(strcmp(filter,"all"))
 	return 1;
     }
     else if(ret==-1){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is nonpositive.\n");}
+      fprintf(stderr, "this polynomial is nonpositive.\n");
       if(strcmp(filter,"all"))
 	return -1;
     }
     else if(ret==2){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is (strictly) positive.\n");}
+      fprintf(stderr, "this polynomial is (strictly) positive.\n");
       if(strcmp(filter,"all"))
 	return 2;
     }
     else if(ret==-2){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is (strictly) negative.\n");}
+      fprintf(stderr, "this polynomial is (strictly) negative.\n");
       if(strcmp(filter,"all"))
 	return -2;
     }
     else if(ret==-3){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is indefinite.\n");}
+      fprintf(stderr, "this polynomial is indefinite.\n");
       if(strcmp(filter,"all"))
 	return -3;
     }
     else{
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "the algorithm failed to determine the sign of this polynomial.\n");}
+      fprintf(stderr, "the algorithm failed to determine the sign of this polynomial.\n");
       if(strcmp(filter,"all"))
 	return -4;
     }
@@ -2751,42 +2747,42 @@ int polytest(ex tmp, int numv, int deg, int dcfs, const char *filter, int maxppp
   // Positive everywhere?
   //
   if(!strcmp(filter,"posall") || !strcmp(filter,"all")){
-    if(debug){fprintf(stderr, "\n***Examining the sign of this polynomial on all of R^n\\{0} using \"isfullpospoly\".\n");}
+    fprintf(stderr, "\n**Examining the sign of this polynomial on all of R^n\\{0} using \"isfullpospoly\".\n");
     ret=isfullpospoly(tmp,numv,0,maxpppdeg,&pppdegused,0,debugfull);
     sprintf(mesg, " (trying SDP up to degree %d)", maxpppdeg);
-    if(debug || !strcmp(filter,"all")){fprintf(stderr,"\nThe result of isfullpospoly%s: %d\nThis means that on R^n\\{0} ", maxpppdeg<0?" (not using SDP)":mesg, ret);}
+    fprintf(stderr,"The result of isfullpospoly%s: %d\nThis means that on R^n\\{0} ", maxpppdeg<0?" (not using SDP)":mesg, ret);
     if(ret==0){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is zero.\n");}
+      fprintf(stderr, "this polynomial is zero.\n");
       if(strcmp(filter,"all"))
 	return 0;
     }
     else if(ret==1){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is nonnegative.\n");}
+      fprintf(stderr, "this polynomial is nonnegative.\n");
       if(strcmp(filter,"all"))
 	return 1;
     }
     else if(ret==-1){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is nonpositive.\n");}
+      fprintf(stderr, "this polynomial is nonpositive.\n");
       if(strcmp(filter,"all"))
 	return -1;
     }
     else if(ret==2){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is (strictly) positive.\n");}
+      fprintf(stderr, "this polynomial is (strictly) positive.\n");
       if(strcmp(filter,"all"))
 	return 2;
     }
     else if(ret==-2){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is (strictly) negative.\n");}
+      fprintf(stderr, "this polynomial is (strictly) negative.\n");
       if(strcmp(filter,"all"))
 	return -2;
     }
     else if(ret==-3){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "this polynomial is indefinite.\n");}
+      fprintf(stderr, "this polynomial is indefinite.\n");
       if(strcmp(filter,"all"))
 	return -3;
     }
     else if(ret==-4){
-      if(debug || !strcmp(filter,"all")){fprintf(stderr, "the algorithm failed to determine the sign of this polynomial.\n");}
+      fprintf(stderr, "the algorithm failed to determine the sign of this polynomial.\n");
       if(strcmp(filter,"all"))
 	return -4;
     }

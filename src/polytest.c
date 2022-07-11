@@ -33,7 +33,7 @@ int main(int argc, char *argv[]){
   const char *filter=NULL;
   char HelpStr[2000];
 
-  sprintf(HelpStr, "\nExample command:\n\t%s -v -fnewton -e0 polyfile 2> tmp.log\n\nOptions:\n\t\"-v\" means full debugging output;\n\t\"-f[filter]\" means a filter (\"factor\", \"newton\", \"heuristic\", \"posorth\", \"posall\", or \"all\" for all tests (default)).\n\t\"-e[effort]\" means effort (integer from 0 to 5, default is 0).\n\nAfter the options, the remaining argument is the input file which holds the polynomial. The polynomial is homogenised (and may be simplified) before any tests.\n", argv[0]);
+  sprintf(HelpStr, "\nExample command:\n\t%s -v -fposorth -e2 polyfile 2> tempfiles/tmp.log\n\nMeaning:\n\tExamine the file \"polyfile\" assumed to contain a single multivariate\n\tpolynomial, and attempt to determine if this polynomial is positive\n\tor nonnegative on the positive orthant. Put in a medium level of\n\teffort: \"-e2\". Send debugging output to \"tempfiles/tmp.log\"\n\nOptions:\n\t\"-v\" means verbose output;\n\t\"-f[filter]\" means a filter - see below for a list.\n\t\"-e[effort]\" means effort: an integer from 0 to 5, the default is 0.\n\nFilters:\n\tThe most important filters are \"posorth\": attempt to determine\n\tpositivity on the positive orthant; and \"posall\": attempt to\n\tdetermine positivity on all of R^n, except possibly at 0. Other\n\tfilters are \"newton\": examine the Newton polytope of the\n\tpolynomial; \"heuristic\": do only heuristic tests to determine\n\tpositivity on the positve orthant, i.e., avoid semidefinite\n\tprogramming; and \"factor\": attempt to factor using GiNaC.\n\t\n\nNotes: The polynomial is homogenised, and may be simplified in many ways,\nbefore any tests. If it has many terms or is of high degree, then\nsome tests will likely fail, and the programme may need to be killed.\nThe effort parameter is crucial if semidefinite programming is used\nin any of the tests. If you really want to track what is being done,\nthen increase the debug level, by swapping the option \"-v\" for,\nsay, \"-d5\": but be warned much of this debugging output will be\nhard to understand!\n\n", argv[0]);
 
   //options?
   while ((opt = getopt(argc, argv, "vf:e:hd:")) != -1) {
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]){
       fprintf(stderr, "%s", HelpStr);
       exit(0);
     default: /* '?' */
-      fprintf(stderr, "Usage: %s [-v] [-f filter] [-e effort] polyfile\n", argv[0]);
+      fprintf(stderr, "%s", HelpStr);
       exit(EXIT_FAILURE);
     }
   }
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]){
 
   //fprintf(stderr, "infile=%s, outfilehopf=%s, outfilenohopf=%s, species=%d, reactions=%d, filter=%s, effort=%d, debug=%d\n", infile, outfilehopf, outfilenohopf, numspec, numreac, filter, effort, debug);
 
-  printf("The result of polytest is %d\n", polytest(infile, filter, effort-1, debug));
+  polytest(infile, filter, effort-1, debug);
   return 0;
 
 }

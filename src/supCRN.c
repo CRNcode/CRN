@@ -34,7 +34,7 @@ int main(int argc, char *argv[]){
   unsigned long totin,totout;
   int rankchange=-1;
 
-  sprintf(HelpStr, "\nExample command:\n\t%s -v infile.d6 outfile.d6 3 4 spec\n\nOptions:\n\t\"-v\" means full debugging output\n\t\"-o\" means forbid reactions of the form 0-->X and X-->0.\n\t\"-r\" followed by 0 means preserve rank; 1 means increase by 1 (default is no checking of rank of enlarged network).\n\nAfter the options, the remaining arguments are mandatory:\n\tinput file\n\toutput file\n\tnumber of species\n\tnumber of reactions\n\t\"spec\" to add species or \"reac\" to add reactions.\n\n", argv[0]);
+  sprintf(HelpStr, "\nExample command:\n\t%s infile.d6 outfile.d6 3 4 spec\n\nMeaning:\n\tTake all the reactions in infile.d6: these have 3 species and\n\t4 irreversible reactions, and are assumed to be bimolecular.\n\tEnlarge in all possible ways by adding a new species, while\n\tpreserving bimolecularity. Return the results - a list of\n\tnonisomorphic CRNs - in \"outfile.d6\". \n\nOptions:\n\t\"-v\" means full debugging output\n\t\"-o\" means forbid reactions of the form 0-->X and X-->0.\n\t\"-r\" followed by 0 means preserve rank; 1 means increase the rank by 1.\n\tThe default is no checking of rank of enlarged network.\n\nAfter the options, the remaining arguments are mandatory:\n\tinput file\n\toutput file\n\tnumber of species\n\tnumber of reactions\n\t\"spec\" to add species or \"reac\" to add reactions.\n\n", argv[0]);
 
   //options?
   while ((opt = getopt(argc, argv, "vd:hor:")) != -1) {

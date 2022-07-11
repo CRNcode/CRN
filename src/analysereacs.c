@@ -4300,25 +4300,6 @@ void printdotpairsubmat(FILE *fd, int **imat, int **imat1, int *vec1, int *vec2,
   return;
 }
 
-void printmaximamat(int **imat, int n, int m){
-  int i,j;
-  fprintf(stderr, "SS:matrix(");
-  for(i=0;i<n;i++){
-    fprintf(stderr, "[");
-    for(j=0;j<m;j++){
-      fprintf(stderr, "%d",imat[i][j]);
-      if(j<(m-1))
-	fprintf(stderr, ",");
-    }
-   if(i<n-1)
-      fprintf(stderr, "],");
-    else
-      fprintf(stderr, "]");
-  }
-  fprintf(stderr, ");\n");
-  return;
-}
-
 void printmaximaindmat(int **imat, int k1, int k2){
   int i,j;
   fprintf(stderr, "MM:matrix(");
@@ -8150,7 +8131,7 @@ bool *CRNPN3(int **SR, int **RS, int n, int m, int minlayers, int *layers){
 //Sauro multigraph format description at https://arxiv.org/pdf/0901.3067.pdf
 //E.g.: 3 reactions (vertices 0,1,2) 5 species (vertices 3,4,5,6,7)
 //These are the first two digits; followed by edges (vertex-pairs, S-R and R-S)
-//3 5 0 3 0 4 5 0 7 0 6 1 1 7 1 7 2 6 7 2 7 2
+//E.g.: 3 5 0 3 0 4 5 0 7 0 6 1 1 7 1 7 2 6 7 2 7 2
 
 //A reaction Sauro format to one in layered di6 format
 char *Saurotodi6(char *s, int minlayers, int *layers, int *n, int *m){
@@ -8252,7 +8233,12 @@ int **SaurotoAM(char *s, int *n, int *m){
 
 
 
-//A reaction Sauro format to one in layered di6 format
+//A reaction simpstr format to one in layered di6 format
+//simpstr format: we assume knowledge of the number of species and reactions
+//a list of integers separated by spaces or commas: first column of Sl, then 
+//first column of Sr, then second column of Sl, then second column of Sr..., 
+//and so forth. If there are n species, then each block of 2*n entries
+//corresponds to a reaction. 
 char *simpstrtodi6(char *s, int minlayers, int *layers, int n, int m){
   int i, l;
   int nR,nS;
@@ -9248,7 +9234,7 @@ matrix reacJMAeq(int **Si, int **Sil, int n, int m, int ***Q, matrix *QX, int *n
 
 
   basisT=poskerbasis(Si,n,m,&totbasis,rk);
-  if(totbasis>1 && reduce){//
+  if(totbasis>1 && reduce){//Equivalent to replacing Q with QD
     reduce_mat(Sil, n, m, 0);//divide each row by its gcd
   }
   if(!basisT){
@@ -9362,7 +9348,76 @@ matrix reacJMAeq(char *di6, int n, int m, int ***Q, matrix *QX, int *numv, int *
   return J;
 }
 
+//print Q or QX (first factor of JMAeq) to stdout
+void printreacQ(char *di6, int n, int m){
+  int **Q;
+  matrix QX;
+  matrix J;
+  int numv;
+  J=reacJMAeq(di6, n, m, &Q, &QX, &numv);
 
+  if(Q){
+    printmat1(Q,n,n);
+    free_imatrix(Q, 0, n-1, 0, n-1);
+  }
+  else
+    printmat1(QX,n,n);
+  
+  return;
+}
+
+//print Q or QX (first factor of JMAeq) to stdout
+//in format readable by maxima
+void printreacQ_max(char *di6, int n, int m){
+  int **Q;
+  matrix QX;
+  matrix J;
+  int numv;
+  J=reacJMAeq(di6, n, m, &Q, &QX, &numv);
+
+  if(Q){
+    printmaximamat1(Q,n,n);
+    free_imatrix(Q, 0, n-1, 0, n-1);
+  }
+  else
+    printmaximamat1(QX,n,n);
+  
+  return;
+}
+
+//print JMAeq to stdout
+void printreacJMAeq(char *di6, int n, int m){
+  int **Q;
+  matrix QX;
+  matrix J;
+  int numv;
+  J=reacJMAeq(di6, n, m, &Q, &QX, &numv);
+  printmat1(J,n,n);
+  if(Q)
+    free_imatrix(Q, 0, n-1, 0, n-1);
+  return;
+}
+
+//print JMAeq to stdout in a form readable by maxima
+void printreacJMAeq_max(char *di6, int n, int m){
+  int **Q;
+  matrix QX;
+  matrix J;
+  int numv;
+  J=reacJMAeq(di6, n, m, &Q, &QX, &numv);
+  printmaximamat1(J,n,n);
+  if(Q)
+    free_imatrix(Q, 0, n-1, 0, n-1);
+  return;
+}
+
+//print the positive general kinetics Jacobian matrix
+void printreacJ(char *di6, int n, int m){
+  int numv;
+  matrix J=reacJac(di6,n,m,&numv,0);
+  printmat1(J,n,n);
+  return;
+}
 
 
 // Take a digraph Nauty digraph6 format (two layers) and 
@@ -12756,6 +12811,8 @@ int repeatedreacs(char *di6, int n, int m){
 }
 
 
+
+
 // filter CRNs in NAUTY 2 layer format
 // Runs a number of different possible tests on a CRN, determined by
 // the filter
@@ -12776,7 +12833,9 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
   // Dynamically isomorphic CRNs (i.e., giving rise to the same set of
   // dynamical systems under any scaling invariant kinetics)
   // Uses NAUTY and writes the translation table to stderr
-  if(!strcmp(filt, "dynisomorphMA"))
+  if(!strcmp(filt, "isomorph"))
+    return dynamicshortfile(fname, outfname, "nofilter", n, m, 0);
+  else if(!strcmp(filt, "dynisomorphMA"))
     return dynamicshortfile(fname, outfname, "MA", n, m, 0);
   else if(!strcmp(filt, "dynisomorphGK"))
     return dynamicshortfile(fname, outfname, "GK", n, m, 0);
@@ -12801,8 +12860,14 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
 	continue;
 
       i++;
-      printf("%ld/%ld\n",i,numl);//to stdout
-      if(!strcmp(filt, "linkageclasses")){
+      printf("//%ld/%ld\n",i,numl);//to stdout
+      if(!strcmp(filt, "printreacs")){
+	str=di6toreacstr(oneline,n,m,0);
+	printf("%s", str);
+	free(str);
+	num++;
+      }
+      else if(!strcmp(filt, "linkageclasses")){
 	printf("%d linkage classes\n", linkage_classes(oneline, n, m));
 	num++;
       }
@@ -12817,6 +12882,32 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
       }
       else if(!strcmp(filt, "printsiphons")){
 	printsiphons(oneline, n, m);
+	num++;
+      }
+      //print the MA Jacobian matrix at equilibria
+      else if(!strcmp(filt, "printJ")){
+	printreacJ(oneline, n, m);
+	num++;
+      }
+      //print the MA Jacobian matrix at equilibria
+      else if(!strcmp(filt, "printJMAeq")){
+	printreacJMAeq(oneline, n, m);
+	num++;
+      }
+      //print the MA Jacobian matrix at equilibria in maxima form
+      else if(!strcmp(filt, "printJMAeqmax")){
+	printreacJMAeq_max(oneline, n, m);
+	num++;
+      }
+      //print the first factor in the MA Jacobian matrix at equilibria
+      else if(!strcmp(filt, "printQ")){
+	printreacQ(oneline, n, m);
+	num++;
+      }
+      //print the first factor in the MA Jacobian matrix at equilibria
+      //in maxima form
+      else if(!strcmp(filt, "printQmax")){
+	printreacQ_max(oneline, n, m);
 	num++;
       }
       else if(!strcmp(filt, "molecularity")){

@@ -1983,6 +1983,76 @@ void printmat1(char **cmat, int **imat, int n, int m){
   return;
 }
 
+//print the matrix in a form required for maxima input
+void printmaximamat(int **imat, int n, int m){
+  int i,j;
+  fprintf(stderr, "SS:matrix(");
+  for(i=0;i<n;i++){
+    fprintf(stderr, "[");
+    for(j=0;j<m;j++){
+      fprintf(stderr, "%d",imat[i][j]);
+      if(j<(m-1))
+	fprintf(stderr, ",");
+    }
+   if(i<n-1){fprintf(stderr, "],");}else{fprintf(stderr, "]");}
+  }
+  fprintf(stderr, ");\n");
+  return;
+}
+
+//overloading: take a symbolic matrix as input
+void printmaximamat(matrix mat, int n, int m){
+  int i,j;
+  cerr << "SS:matrix(";
+  for(i=0;i<n;i++){
+    cerr<< "[";
+    for(j=0;j<m;j++){
+      cerr<< mat[i][j];
+      if(j<(m-1))
+	cerr << ",";
+    }
+   if(i<n-1){cerr << "],";}else{cerr<< "]";}
+  }
+  cerr<< ");\n";
+  return;
+}
+
+//print the matrix in a form required for maxima input
+//This time to stdout
+void printmaximamat1(int **imat, int n, int m){
+  int i,j;
+  printf("SS:matrix(");
+  for(i=0;i<n;i++){
+    printf("[");
+    for(j=0;j<m;j++){
+      printf("%d",imat[i][j]);
+      if(j<(m-1))
+	printf(",");
+    }
+   if(i<n-1){printf("],");}else{printf("]");}
+  }
+  printf(");\n");
+  return;
+}
+
+//overloading: take a symbolic matrix as input
+//print to cout
+void printmaximamat1(matrix mat, int n, int m){
+  int i,j;
+  cout << "SS:matrix(";
+  for(i=0;i<n;i++){
+    cout<< "[";
+    for(j=0;j<m;j++){
+      cout<< mat[i][j];
+      if(j<(m-1))
+	cout << ",";
+    }
+   if(i<n-1){cout << "],";}else{cout<< "]";}
+  }
+  cout<< ");\n";
+  return;
+}
+
 void printtens(int ***tens, int n, int m){
   int i,j,k;
   for(i=0;i<n;i++){

@@ -7,7 +7,7 @@
 #inheritance, but keep only genuine networks (264). These fall into
 #198 dynamically nonisomorphic classes
 
-../bin/supCRN -r0 networks/Hopf.d6 tempfiles/tmp.d6 3 4 spec
+../bin/supCRN -r0 networks/s3r4Hopf.d6 tempfiles/tmp.d6 3 4 spec
 ../bin/filterCRNs tempfiles/tmp.d6 networks/s4r4Hopfinherit.d6 4 4 genuine
 ../bin/filterCRNs networks/s4r4Hopfinherit.d6 networks/s4r4Hopfinherit_DI.d6 4 4 dynisomorphMA
 #Sanity check: no redundant reactions
@@ -17,7 +17,7 @@
 #inheritance. Remove the networks with redundant reactions
 #suffix _good means no redundant reations
 
-../bin/supCRN networks/Hopf.d6 networks/s3r5Hopfinherit.d6 3 4 reac
+../bin/supCRN networks/s3r4Hopf.d6 networks/s3r5Hopfinherit.d6 3 4 reac
 ../bin/filterCRNs networks/s3r5Hopfinherit.d6 networks/s3r5Hopfinherit_good.d6 3 5 notredundantreacs
 # Dynamically isomorphic
 ../bin/filterCRNs networks/s3r5Hopfinherit.d6 networks/s3r5Hopfinherit_DI.d6 3 5 dynisomorphMA

@@ -32,7 +32,7 @@ int main(int argc, char *argv[]){
   int intyp=0,outtyp=0;//integer versions
   long numout;
 
-  sprintf(HelpStr, "\nExample command:\n\t%s -idi6 infile.di6 outfile.reacs reacstr 3 4\n\nOptions:\n\t\"-i[inputformat]\" tells us the input file format (\"di6\" or \"reacstr\" or \"Sauro\" or \"simpstr\"). If not specified, the algorithm tries to determine the format from the file, but may fail.\n\t\"-o[outformat]\" tells us the output file format (\"di6\" or \"reacstr\" or \"Sauro\" or \"simpstr\" or \"dot\"). If not specified, the algorithm tries to determine the format from the file ending, but may fail.\n\nThe arguments are:\n\tinput file\n\toutput file\n\tnumber of species (needed only if input format is \"di6\" or \"simpstr\")\n\tnumber of reactions (needed only if input format is \"di6\" or \"simpstr\")\n\nOne of input or output files must be in digraph 6 format.\n\n", argv[0]);
+  sprintf(HelpStr, "\nExample command:\n\t%s -idi6 -oreacstr infile.d6 outfile.reacs 3 4\n\nMeaning:\n\tTake input file \"infile.d6\" containing 3-species, 4-reaction CRNs\n\tin digraph6 format, and write these to output file \"outfile.reacs\"\n\tin human readable \"reacstr\" format.\n\nOptions:\n\t\"-i[inputformat]\" tells us the input file format: \"di6\" or \"reacstr\"\n\tor \"Sauro\" or \"simpstr\". If not specified, the algorithm tries to\n\tdetermine the format from the file, but may fail.\n\t\"-o[outformat]\" tells us the output file format: \"di6\" or \"reacstr\" \n\tor \"Sauro\" or \"simpstr\" or \"dot\". If not specified, the algorithm\n\ttries to determine the format from the file ending, but may fail.\n\nThe arguments are:\n\tinput file\n\toutput file\n\tnumber of species (needed only if input format is \"di6\" or \"simpstr\")\n\tnumber of reactions (needed only if input format is \"di6\" or \"simpstr\")\n\nOne of either input or output file must be in digraph6 format.\n\n", argv[0]);
 
   //options?
   while ((opt = getopt(argc, argv, "i:o:h")) != -1) {
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]){
       fprintf(stderr, "%s", HelpStr);
       exit(0);
     default: /* '?' */
-      fprintf(stderr, "Usage: %s -i[inputformat] -o[outputformat] infile outfile numspecies numreacs\n", argv[0]);
+      fprintf(stderr, "%s", HelpStr);
       exit(EXIT_FAILURE);
     }
   }
@@ -96,6 +96,11 @@ int main(int argc, char *argv[]){
     optind++;
   }
 
+
+  if(mainargs<2){
+    fprintf(stderr, "You must supply at least two arguments.\n%s", HelpStr);
+    exit(0);
+  }
 
   if(!intype){//not given
     intyp=guessreacformat(infile);
@@ -142,14 +147,14 @@ int main(int argc, char *argv[]){
     fprintf(stderr, "For digraph6 output, input type must be one of \"reacstr\", \"simpstr\", or \"Sauro\". EXITING.\n");exit(EXIT_FAILURE);
   }
   if(outtyp>=2 && outtyp<=4 && intyp!=1){
-    fprintf(stderr, "For %s output, input type can only be digraph 6. EXITING.\n", outtype);exit(EXIT_FAILURE);
+    fprintf(stderr, "For %s output, input type can only be digraph6. EXITING.\n", outtype);exit(EXIT_FAILURE);
   }
   if(intyp>=2 && intyp<=4 && outtyp!=1){
-    fprintf(stderr, "Given %s input, output type can only be digraph 6. EXITING.\n", outtype);exit(EXIT_FAILURE);
+    fprintf(stderr, "Given %s input, output type can only be digraph6. EXITING.\n", outtype);exit(EXIT_FAILURE);
   }
 
   if((intyp==1 || intyp==4) && mainargs<4){
-    fprintf(stderr, "With input in digraph 6 or simpstr format, the final two arguments must be the number of species and the number of reactions.\n");
+    fprintf(stderr, "With input in digraph6 or simpstr format, the final two arguments must be the number of species and the number of reactions.\n");
     exit(0);
   }
 

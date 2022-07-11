@@ -1,3 +1,3 @@
-//Basic polynomial, +ve on the +ve orthant
+//Basic polynomial, +ve on the +ve orthant. Do not alter this file
 //try: ./bin/polytest data/poly001
 x^2-2*x+1+y

@@ -24,12 +24,24 @@
 
 
 int main(int argc, char *argv[]){
-  int mainargs=0;
+  int opt, mainargs=0;
   char HelpStr[2000];
   char *isotablefile, *base_file, *reduced_file, *infile, *outfile;
   unsigned long totin,totout;
 
-  sprintf(HelpStr, "\nExample command:\n\t%s isotablefile base_file.d6 reduced_file.d6 infile.d6 outfile.d6\n\nThe files are:\n\t1) The isomorphism table\n\t2)The file used to generate the isomorphism table\n\t3)The output from isomorphism generation\n\t4)The input file whose isomorphs we want to find\n\t5)The output file to hold isomorphs.\n\nThe lookup is generated using \"filterCRNs\", e.g. via:\n\n./bin/filterCRNs base_file.d6 reduced_file.d6 <numspec> <numreacs> dynisomorphMA 2> isotablefile\n\n", argv[0]);
+  sprintf(HelpStr, "\nExample command:\n\t%s isotable base.d6 reduced.d6 infile.d6 outfile.d6\n\nMeaning:\n\tThe idea is that we previously examined the CRNs in \"base.d6\",\n\tkept only one representative of each class in \"reduced.d6\", and\n\tstored a list of equivalence classes - in the format output by\n\tnauty - in \"isotable\". We now have a list of CRNs in \"infile.d6\",\n\tand wish to find all the CRNs from the original list in \"base.d6\"\n\twhich are isomorphic to CRNs in \"infile.d6\"; but just using the\n\tlookup table, rather than doing isomorphism checking. The\n\toutput is stored in \"outfile.d6\".\n\nFour input files and one output file are needed, in this order:\n\t1. The isomorphism table in nauty format\n\t2. The file used to generate the isomorphism table in digraph6 format\n\t3. The output from isomorphism generation in digraph6 format\n\t4. The input file whose isomorphs we want to find in digraph6 format\n\t5. The output file to hold isomorphs in digraph6 format.\n\nThe lookup could be generated, for example, using \"filterCRNs\", e.g. via:\n\n./bin/filterCRNs base.d6 reduced.d6 <numspec> <numreacs> dynisomorphMA 2> isotable\n\nAll files must be in digraph6 format.\n\n", argv[0]);
+
+  //options?
+  while ((opt = getopt(argc, argv, "i:hve:d:f:")) != -1) {
+    switch (opt) {
+    case 'h': //help
+      fprintf(stderr, "%s", HelpStr);
+      exit(0);
+    default: /* '?' */
+      fprintf(stderr, "%s", HelpStr);
+      exit(EXIT_FAILURE);
+    }
+  }
 
 
   while(mainargs < argc+1){

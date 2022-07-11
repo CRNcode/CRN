@@ -53,7 +53,7 @@ int main(int argc, char *argv[]){
   int numspec, numreac;
   char HelpStr[2000];
 
-  sprintf(HelpStr, "\nExample command:\n\t%s -v -fMAonly -e0 infile.d6 outfilehopf.d6 outfilenohopf.d6 3 4 2> tmp.log\n\nOptions:\n\t\"-v\" means full debugging output;\n\t\"-f[filter]\" means a filter (e.g., \"MAonly\" for only mass action, \"GKonly\" for only general kinetics, of \"ALL\" (default) for both).\n\t\"-e[effort]\" means effort (integer from 0 to 3, default is 0).\n\nAfter the options, the remaining arguments are mandatory:\n\tinput file\n\toutput file for networks where H-bif is not ruled out\n\toutput file for networks where H-bif is ruled out\n\tnumber of species\n\tnumber of reactions.\n", argv[0]);
+  sprintf(HelpStr, "\nExample command:\n\t%s -v -fMAonly -e0 infile.d6 hopf.d6 nohopf.d6 3 4 2> tempfiles/tmp.log\n\nMeaning:\n\tExamine the 3-species, 4-reaction CRNs in \"infile.d6\" in\n\tdigraph6 format for potential Andronov-Hopf bifurcation with\n\tmass action kinetics. Write CRNs where Hopf bifurcation is\n\tdefinitely ruled out to \"nohopf.d6\". Write the remaining CRNs\n\tto \"hopf.d6\". Effort level is minimal: \"-e0\".\n\tDebugging output to \"tempfiles/tmp.log\"\n\nOptions:\n\t\"-v\" means verbose output;\n\t\"-f[filter]\" means a filter: e.g., \"MAonly\" for only mass action,\n\t\"GKonly\" for only general kinetics, or \"ALL\"  for both.\n\t\"-e[effort]\" means effort, an integer from 0 to 3. The default is 0.\n\nArguments:\n\tinput file in d6 format\n\toutput file with potential Hopf in d6 format\n\toutput file where Hopf ruled out in d6 format\n\tnumber of species\n\tnumber of reactions.\n", argv[0]);
 
   //options?
   while ((opt = getopt(argc, argv, "vf:e:hd:")) != -1) {

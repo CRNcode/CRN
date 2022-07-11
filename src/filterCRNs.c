@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
   char *infile, *outfile, *filter=NULL;
   int filterarg=0;
 
-  sprintf(HelpStr, "\nExample command:\n\t%s -v infile.d6 outfile.d6 3 4 rank 3 2> tmp.log\n\nOptions:\n\t\"-v\" means full debugging output.\n\nAfter the options, the following arguments are mandatory:\n\tinput file\n\toutput file\n\tnumber of species\n\tnumber of reactions\n\tfilter\n\t[for some filters] an additional numerical argument.\n\nThe list of supported filters is long and can be found by examining the source file \"src/analysreacs.c\"\n", argv[0]);
+  sprintf(HelpStr, "\nExample command:\n\t%s -v infile.d6 outfile.d6 3 4 rank 3 2> logfiles/tmp.log\n\nMeaning:\n\tExamine the file \"infile.d6\" containing 3-species, 4-reaction CRNs,\n\tin digraph6 format, and write to \"outfile.d6\" only those CRNs\n\tof rank 3. Write debugging output to \"logfiles/tmp.log\"\n\nOptions:\n\t\"-v\" means verbose output.\n\nThe following arguments are mandatory:\n\tinput file in d6 format\n\toutput file in d6 format\n\tnumber of species\n\tnumber of reactions\n\tfilter\n\t[for some filters] an additional numerical argument.\n\nThe list of supported filters is long and can be found by examining\n\"allfilters_annotated\".\n\n", argv[0]);
 
 
   //options?
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]){
       fprintf(stderr, "%s", HelpStr);
       exit(0);
     default: /* '?' */
-      fprintf(stderr, "Usage: %s [-v] infile outfile numspecies numreacs filter filterargs\n", argv[0]);
+      fprintf(stderr, "%s", HelpStr);
       exit(EXIT_FAILURE);
     }
   }
