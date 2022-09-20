@@ -64,6 +64,7 @@ int polylistsimp(int **lst, int numv, long r, int ***lstnew, int mkhom, int tmpp
 ex lrexptopolysimp(int **l, int *cfs, long numinds, int n);
 ex lrexptopolysimp(int **l, double *cfs, long numinds, int n);
 ex lrexptopolysimp(int **l, double *cfs, double tol, long numinds, int n);
+ex polyhom(ex e, ex var, int offset);
 ex polyhomsimp(ex tmp1, int *numvin, int *numvout, int *deg, int mkhom, int dcfs, int debug);
 ex polyfromstring(const char *str, int *numvin, int *numv, int *deg, int mkhom, int *dcfs, int debug);
 ex polyfromfile(const char filename[], int *numvin, int *numv, int *deg, int mkhom, int *dcfs, int debug);

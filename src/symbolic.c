@@ -1,19 +1,19 @@
 /* Copyright (C) 2010-2022, Murad Banaji
  *
- * This file is part of QUALMAT
+ * This file is part of CRNcode
  *
- * QUALMAT is free software; you can redistribute it and/or 
+ * CRNcode is free software; you can redistribute it and/or 
  * modify it under the terms of the GNU General Public License 
  * as published by the Free Software Foundation; either version 2, 
  * or (at your option) any later version.
  *
- * QUALMAT is distributed in the hope that it will be useful, but
+ * CRNcode is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with QUALMAT: see the file COPYING.  If not, write to 
+ * along with CRNcode: see the file COPYING.  If not, write to 
  * the Free Software Foundation, Inc., 59 Temple Place - Suite 330, 
  * Boston, MA 02111-1307, USA. 
 
@@ -248,7 +248,6 @@ void monotointlist(int *cf, ex e, int **lst, int *r){
 }
 
 
-
 // Overloading: version where coeffs are double
 void monotointlist(double *cf, ex e, int **lst, int *r){
   
@@ -467,6 +466,7 @@ int polytointlist(ex e, int ***lst, int **cflst, long *r){
     else if(ord1!=monord){
       cout << "polynomial is not homogeneous" << endl;
       cout << "expected ord = " << monord << " term = " << e.op(k) <<" actual ord = " << ord1 << endl;
+      cout << "polynomial = " << e << endl;
       exit(0);
     }
   }
@@ -514,6 +514,96 @@ int polytointlist(ex e, int ***lst, double **cflst, long *r){
   }
   return monord;
 }
+
+//return the total degree of a monomial
+int monodegree(ex e){
+  int tot=0;
+
+  if(e==0)
+    return -1;
+
+  if(is_a<add>(e)){
+    cout << "failure in monodegree: not expecting a sum:\n" << e << endl;
+    exit(0);
+  }
+
+  if(is_a<power>(e)){
+    if(is_a<symbol>(e.op(0))){
+      if(is_a<numeric>(e.op(1)))
+	return ex_to<numeric>(e.op(1)).to_int();
+      else{
+	cout << "failure in monodegree: expecting an integer exponent but got " << e.op(1) << endl;
+	exit(0);
+      }
+    }
+    cout << "failure 1 in monodegree: expecting a symbol but got:\n" << e.op(0) << endl;
+    exit(0);
+  }
+  else if(is_a<symbol>(e)){ // single symbol - not a product
+    return 1;
+  }
+  else if(is_a<numeric>(e)){// constant
+    return 0;
+  }
+  else if(e!=0){
+    for (size_t k=0; k!=e.nops(); ++k){
+      if(is_a<power>(e.op(k))){
+	if(is_a<symbol>(e.op(k).op(0))){
+	  if(is_a<numeric>(e.op(k).op(1)))
+	    tot+=ex_to<numeric>(e.op(k).op(1)).to_int();
+	  else{
+	    cout << "failure in monodegree: expecting a numerical exponent but got:" << e.op(k).op(1) << endl;
+	    exit(0);
+	  }
+	}
+	else{
+	  cout << "failure 1 in monodegree: expecting a symbol but got:\n" << e.op(k).op(0) << endl;
+	  exit(0);
+	}
+      }
+      else if(is_a<symbol>(e.op(k)))
+	tot+=1;
+      else if(!is_a<numeric>(e.op(k))){
+	cout << "failure 2 in monodegree: expecting a number or symbol but got:\n" << e.op(k) << endl;
+	exit(0);
+      }
+
+    }
+  }
+  return tot;
+}
+
+//degree of a polynomial
+int polydegree(ex e){
+  int t,deg=-1;
+  if(e==0)
+    return -1;
+  if(!(is_a<add>(e))){// a single term
+    return monodegree(e);
+  }
+  for (size_t k=0; k!=e.nops(); ++k){
+    if((t=monodegree(e.op(k)))>deg)
+      deg=t;
+  }
+  return deg;
+}
+
+//homogenise a polynomial (assume expanded) using 
+//variable var (assumed not to be one of the variables of the polynomial
+ex polyhom(ex e, ex var, int offset){
+  ex tot=0;
+  int t,deg=polydegree(e);
+  if(deg<=0 || !(is_a<add>(e)))// constant or a single term
+    return e;
+
+  for (size_t k=0; k!=e.nops(); ++k){
+    t=monodegree(e.op(k));
+    tot+=expand(pow(var,deg-t+offset)*e.op(k));
+  }
+  return tot;
+}
+
+
 
 // has non-integer coefficient?
 
@@ -611,7 +701,7 @@ ex gcdpoly(ex e){
 
 
 // polynomial not assumed homogeneous. 
-// r is the number of monomials. Returns the degree. 
+// r is the number of monomials. 
 // The first entry in each output vector is the degree of the monomial.
 // variables assumed to be of the form a single letter followed by a number
 
@@ -871,7 +961,7 @@ void monovars(ex e, char ***vars, int *numvars){
   return;
 }
 
-// Extract the variable name from a monomial as strings 
+// Extract the variable names from a monomial as strings 
 // and return the monomial in canonical form
 ex monosimp(ex e, char ***vars, int *numvars){
   int p;

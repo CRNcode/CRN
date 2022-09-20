@@ -11994,6 +11994,7 @@ int reacJ2pIMAdetpos(int **AM, int n, int m, int maxpppdegree, int debug){
   int **Q;
   matrix QX;
   matrix J=reacJMAeq(AM, n, m, &Q, &QX, &numv);
+
   int pppdegused;
   int debugfull=(debug<=0)?0:debug-1;
   if(debug){fprintf(stderr, "\n###Entering reacJ2pIMAdetpos: examining the sign of det(J^2+I) (where J is the MA Jacobian)\n");}

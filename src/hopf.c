@@ -107,7 +107,7 @@ ex ReJpiI(matrix J, int n, int numv, bool hom){
   ex v[numv+2];
   char str1[10];
   int k;
-  ex tmp,tmp1=0;
+  ex tmp0,tmp=0,tmp1=0;
   bool fl;
 
   for(k=0;k<=numv+1;k++){
@@ -117,11 +117,16 @@ ex ReJpiI(matrix J, int n, int numv, bool hom){
 
   fl=1;
   for(k=n;k>=0;k-=2){// starts with det(J) and alternates sign
-    if(!hom){tmp=getminorsum0(J,n,k);}else{tmp=expand(pow(v[numv+1],n-k)*getminorsum0(J,n,k));}
-    if(fl){tmp1+=tmp;fl=0;}else{tmp1-=tmp;fl=1;}
+    tmp0=getminorsum0(J,n,k);
+    if(fl){tmp+=tmp0;fl=0;}else{tmp-=tmp0;fl=1;}
   }
+  if(hom)
+    tmp1=polyhom(tmp,v[numv+1],0);
+  else
+    tmp1=tmp;
   return expand(tmp1);
 }
+//if(!hom){tmp=getminorsum0(J,n,k);}else{tmp=expand(pow(v[numv+1],n-k)*getminorsum0(J,n,k));}
 
 // Get the imaginary part of det(J+wI)
 // Variables of J assumed to be in canonical form v%d
@@ -131,7 +136,7 @@ ex ImJpiI(matrix J, int n, int numv, int hom){
   ex v[numv+2];
   char str1[10];
   int k;
-  ex tmp,tmp1=0;
+  ex tmp0,tmp=0,tmp1=0;
   bool fl;
 
   for(k=0;k<=numv+1;k++){
@@ -141,11 +146,19 @@ ex ImJpiI(matrix J, int n, int numv, int hom){
 
   fl=1;
   for(k=n-1;k>=0;k-=2){// starts with J_{n-1} and alternates sign
-    if(!hom){tmp=getminorsum0(J,n,k);}else if(hom==1){tmp=expand(pow(v[numv+1],n-k)*getminorsum0(J,n,k));}else if(hom==2){tmp=expand(pow(v[numv+1],n-k-1)*getminorsum0(J,n,k));}
-    if(fl){tmp1+=tmp;fl=0;}else{tmp1-=tmp;fl=1;}
+    tmp0=getminorsum0(J,n,k);
+    if(fl){tmp+=tmp0;fl=0;}else{tmp-=tmp0;fl=1;}
   }
+  if(hom==1)
+    tmp1=polyhom(tmp,v[numv+1],1);
+  else if(hom==2)
+    tmp1=polyhom(tmp,v[numv+1],0);
+  else
+    tmp1=tmp;
+
   return expand(tmp1);
 }
+//if(!hom){tmp=getminorsum0(J,n,k);}else if(hom==1){tmp=expand(pow(v[numv+1],n-k)*getminorsum0(J,n,k));}else if(hom==2){tmp=expand(pow(v[numv+1],n-k-1)*getminorsum0(J,n,k));}
 
 //special n=3 at bifurcation form
 //i.e. we evaluate along det(J^[2])=0
