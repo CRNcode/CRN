@@ -27,12 +27,12 @@
 int main(int argc, char *argv[]){
   int opt, n, m;
   int debug=0;
-  char *file1=NULL, *file2=NULL;
-  char *a=NULL, *b=NULL, *c=NULL;
+  char *file1=NULL, *file2=NULL, *file3=NULL;
   int mainargs=0;
+  int tot;
 
   char HelpStr[2000];
-  sprintf(HelpStr, "\nExample command:\n\t%s file1.d6 file2.d6 3 4 a.d6 b.d6 c.d6\n\nMeaning:\n\tCompare CRNs in \"file1.d6\" and \"file2.d6\" all assumed to have\n\t3 species and 4 irreversible reactions. Identify common reactions,\n\tup to isomorphism. Print one representative of each CRN in\n\t\"file1.d6\" but not \"file2.d6\" to \"a.d6\"; one representative\n\tof each CRN in \"file2.d6\" but not \"file1.d6\" to \"b.d6\";\n\tand one representative of each CRN common to both \"file1.d6\"\n\tand \"file2.d6\" to \"c.d6\". If some of these sets are empty or\n\tfilenames are not given, then output files will not be created\n\tbut a report will still be given.\n\nArguments: the first four are mandatory.\n\tinput file in digraph6 format\n\toutput file in digraph6 format\n\tnumber of species\n\tnumber of reactions\n\toptional: a file to hold CRNs in \"file1.d6\" but not \"file2.d6\"\n\toptional: a file to hold CRNs in \"file2.d6\" but not \"file1.d6\"\n\toptional: a file to hold CRNs in both \"file1.d6\" and \"file2.d6\".\n\nNote: this program relies on calls to nauty and makes heavy use of Linux\ntools such as \"sort\" and \"comm\".\n\n", argv[0]);
+  sprintf(HelpStr, "\nExample command:\n\t%s file1.d6 file2.d6 file3.d6 3 4\n\nMeaning:\n\tFind CRNs in \"file1.d6\" with LHS's from \"file2.d6\" all assumed\n\tto have 3 species and 4 irreversible reactions. \n\tOutput the found CRNs to\"file3.d6\"\n\tYou could generate the sources file with, for example,\n\t\t\"./bin/filterCRNs <filein> <fileout> 3 4 isomorphnewton1\"\n\nArguments: all five are mandatory.\n\tinput file in digraph6 format\n\tLHS CRN file in digraph6 format\n\tutput file in digraph6 format\n\tnumber of species\n\tnumber of reactions\n\nNote: this program relies on calls to nauty.\n\n", argv[0]);
 
   //options?
   while ((opt = getopt(argc, argv, "h")) != -1) {
@@ -55,33 +55,27 @@ int main(int argc, char *argv[]){
       file2=argv[optind];
       break;
     case 2:
-      if(!ispureint(argv[optind])){
-	fprintf(stderr, "The third argument \"%s\" must be the number of species.\n%s", argv[optind], HelpStr);exit(EXIT_FAILURE);
-      }
-      n=atoi(argv[optind]);
+      file3=argv[optind];
       break;
     case 3:
       if(!ispureint(argv[optind])){
-	fprintf(stderr, "The fourth argument \"%s\" must be the number of reactions.\n%s", argv[optind], HelpStr);exit(EXIT_FAILURE);
+	fprintf(stderr, "The fourth argument \"%s\" must be the number of species.\n%s", argv[optind], HelpStr);exit(EXIT_FAILURE);
       }
-      m=atoi(argv[optind]);
+      n=atoi(argv[optind]);
       break;
     case 4:
-      a=argv[optind];
-      break;
-    case 5:
-      b=argv[optind];
-      break;
-    case 6:
-      c=argv[optind];
+      if(!ispureint(argv[optind])){
+	fprintf(stderr, "The fifth argument \"%s\" must be the number of reactions.\n%s", argv[optind], HelpStr);exit(EXIT_FAILURE);
+      }
+      m=atoi(argv[optind]);
       break;
     }
     mainargs++;
     optind++;
   }
 
-  if(mainargs<4){
-    fprintf(stderr, "You need to specify at least four arguments.\n%s", HelpStr);
+  if(mainargs<5){
+    fprintf(stderr, "You need to specify five arguments.\n%s", HelpStr);
     exit(EXIT_FAILURE);
   }
 
@@ -91,7 +85,8 @@ int main(int argc, char *argv[]){
   }
 
 
-  CRNsubset(file1, file2, a, b, c, n, m, debug);
+  tot=CRNwithsources(file1, file2, file3, n, m, debug);
+  fprintf(stderr, "Wrote %d CRNs to file \"%s\"\n", tot, file3);
   return 0;
 }
 

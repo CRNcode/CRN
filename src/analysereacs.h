@@ -102,6 +102,7 @@ int **SSltoAM(int **S, int **Sl, int n, int m, bool minus);
 void AMtoSSl(int **AM, int n, int m, bool minus, int ***S, int ***Sl);
 void di6toSSl(char *di6, int n, int m, bool minus, int ***S, int ***Sl);
 int **di6toCRNam(char *di6, int n, int m, int *entries);
+int **di6toCRNam1(char *di6, int n, int m, int *totV, int *entries);
 int **di6tosignpat(char *di6, int n);
 char *di6toSauro(char *di6, int n, int m);
 void di6toSauro2(char *di6, int n, int m, char *outstr);
@@ -116,7 +117,7 @@ unsigned long simpstrtodi6file(const char *fname, const char *fout, int n, int m
 unsigned long convertformat(char *infile, int intype, char *outfile, int outtype, int *numspec, int *numreac);
 char *CRNamtostr(int **V, int n, int m, int entries, int open);
 void CRNamtofile(int **V, int n, int m, const char *outfname, int open);
-char *cmplxCRN(char *di6, int n, int m, int minlayers, bool sourceonly, int *totcmplx);
+char *cmplxCRN(char *di6, int n, int m, int minlayers, int sourceonly, int *totcmplx);
 matrix Vmatfromimat(int **imat, int n1, int m1, int *maxv);
 matrix Vmatfromiimat(int ***imat, int n1, int m1, int *maxv);
 matrix Vmatfrompatmat(int **imat, int n1, int m1, int *maxv);
@@ -168,3 +169,8 @@ int endotactic_part(int **S, int **Sl, int n, int m, int debug);
 int endotactic(int **S, int **Sl, int n, int m, int debug);
 int endotactic(int **AM, int n, int m, int debug);
 int endotactic(char *di6, int n, int m, int debug);
+
+int numlayers(char *di6, int n, int m);
+int **minA1tkerbasis(int **Sil, int n, int m, int *tot, int *rk, int *deg, int transpose, int debug);
+int PolytopeVol(int **AM, int n, int m, int debug);
+int PolytopeVol(char *di6, int n, int m, int debug);

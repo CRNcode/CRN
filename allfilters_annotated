@@ -2,10 +2,26 @@
 //General filters
 *rank: rank of network (requires the rank as an additional argument)
 *notrank: rank not equal to (requires the rank as an additional argument)
+*leftrank: rank of reactant matrix (requires the rank as an additional argument)
+*notleftrank: rank of reactant matrix not equal to (requires the rank as an additional argument)
+*leftrank1: rank of reactant matrix augmented with a row of ones (requires the rank as an additional argument)
+*notleftrank1: rank of reactant matrix augmented with a row of ones not equal to (requires the rank as an additional argument)
+*sources: number of source complexes (requires this number as an additional argument)
+*notsources: number of sources different from (requires this number as an additional argument)
+*molecularity: molecularity must be exactly equal to <val> (e.g., to exclude linear networks)
+*notmolecularity: molecularity must not be <val> 
+affdepsources: the source complexes are affinely dependent
+notaffdepsources: the source complexes are affinely independent
 DN or dynnontriv:  dynamically nontrivial (a strictly positive vector in the kernel of the irreversible stoichiometric matrix)
 notDN or notdynnontriv: not dynamically nontrivial
+autocat: some species figure on both sides of a reaction
+notautocat: no species figures on both sides of any reaction
+zeroone: all stoichiometries <=1
+notzeroone: some stoichiometries of two or more
 bdclass: bounded stoichiometric classes 
 notbdclass: unbounded stoichiometric classes 
+homogen: homogeneous, i.e., column sums of the stoichiometric matrix are all zero (implies bounded stoichiometric classes)
+nothomogen: not homogeneous (may still have bounded stoichiometric classes)
 WR: weakly reversible
 notWR: not weakly reversible
 PNconnect: a connected Petri-Net graph (i.e. can't decompose the network)
@@ -14,6 +30,8 @@ notPNconnect: disconnected Petri-Net graph (decomposable network)
 *notdeficiency: network with deficiency different to given (requires the deficiency) 
 genuine: networks in which every species participates in at least one reaction 
 notgenuine: networks in which some species participates in no reactions 
+trivspec: networks in which some species has no net production or consumption in any reaction
+nottrivspec: networks in which every species has net production or consumption in some reaction
 structpersist: the network has no critical siphons
 notstructpersist: the networks has critical siphons 
 endotactic: the network is endotactic
@@ -21,11 +39,13 @@ notendotactic: the network fails to be endotactic
 strongendo: strongly endotactic
 notstrongendo: not strongly endotactic
 printsiphons: pseudotest to print out the siphons of a network
-molecularity: pseudotest to print out a report on the molecularities of the reactions in the network
+printmolecularity: pseudotest to print out a report on the molecularities of the reactions in the network
 repeatedreacs: the network has repeated reactions
 notrepeatedreacs: the network has no repeated reactions
 redundantreacs: the network has "redundant" reactions with reactant vectors in the nonnegative span of others on the same reactant complex
 notredundantreacs: the network has no "redundant" reactions
+spanreacs: a complex with >=3 reacs and some in the span of others? (Then dynamical equivalence is not the same as simple equivalence.)
+notspanreacs: no complex with >=3 reacs and some in the span of others.
 PGKnormal (also notstructdiscord): "normal" for positive general kinetics, i.e. not structurally discordant
 notPGKnormal (also structdiscord): structurally discordant: not normal for positive general kinetics (Jacobian matrix acting on stoichiometric subspace is identically singular)
 
@@ -113,15 +133,20 @@ notJMAcomp2detunsigned: cannot confirm that J^[2] has determinant taking all sig
 
 //isomorphism filters
 isomorph: returns a unique representative in each equivalence class
+isomorphnewton: one representative from each class with the same newton polytope (i.e., source complexes counted without repetition)
+isomorphnewton1: one representative from each class with the same source complexes, counted with repetition
 dynisomorphMA: returns a unique representative in each "simple equivalence" class (shortest reaction vectors)
 dynisomorphGK: returns unique representative in each equivalence class with GK kinetics
 
 
 //pseudofilters
 printreacs: print the reactions in human readable form
+printSSl: print the stoichiometric matrix and the left stoichiometric matrix
 printJ: print the positive general kinetics Jacobian matrix
-printMAeq: print the mass action Jacobian matrix in canonical form (QD_z)
+printJMAeq: print the mass action Jacobian matrix in canonical form (QD_z)
 printQ: print the first factor in the MA Jacobian matrix in canonical form ("Q")
+printA1inv: print the inverse of [A|1] assuming square & nonsingular (A := Gamma_l^t)
+printsolvability: print a minimal integer vector in ker[A|1]^t, assuming ker[A|1]^t is 1-D (A := Gamma_l^t)
 *JMArealspec: prints out information on the real spectrum of the mass action Jacobian matrix at equilibria
 linkageclasses: prints the number of linkage classes to stdout
 deficiency: prints the deficiency to stdout

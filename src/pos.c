@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2022, Murad Banaji
+/* Copyright (C) 2010-2024, Murad Banaji
  *
  * This file is part of CRNcode
  *
@@ -267,7 +267,7 @@ int heuristic_squares(ex detex, int numv, int debug){
   ex best;
   float bestq;
   int lastsplitfail[numv];
-  int maxcliques=1000, maxiter=1000, maxlevel=20;
+  int maxcliques=1000, maxiter=1000, maxlevel=200;
   ex detx;
   int hnv0,allflg;
   ex rems[maxlevel];//squares removed
@@ -315,7 +315,7 @@ int ispospoly(ex detx1, int numv, int *allflg, bool isfct, int doublecfs, int ma
   int ret1,hnv0,hnv;
   int level=0, totiter=0;
   int lastsplitfail[numv];
-  int maxcliques=1000, maxiter=1000, maxlevel=20;
+  int maxcliques=1000, maxiter=1000, maxlevel=200;
   ex best;
   float bestq;
   ex fct;
@@ -2422,6 +2422,64 @@ int isP0matorth(int **J, int n, int debug){
   return isP0matorth(J, n, 0, debug);
 }
 
+//Has mixed trace: i.e., both positive and negative entries on the diagonal
+//or entries of ambiguous sign. 
+//return -1 if we are unsure
+int mixedtrace(matrix J, int n, int maxpppdeg, int *pppdegused, int debug){
+  int i, flag=0,ret;
+  int numv,numvinit,allflag,deg,indeterminate;
+  ex val,val_simp;
+  int dcfs=0;//assuming integer coeffs (or use polyhasdcfs if not sure)
+
+  for(i=0;i<n;i++){
+    val=expand(J[i][i]);
+    val_simp=polyhomsimp(expand(val), &numvinit, &numv, &deg, 1, dcfs, debug);
+    ret=ispospoly(val_simp, numv, &allflag, 0, dcfs, maxpppdeg, pppdegused, debug);
+    if(ret==-4)
+      indeterminate=1;
+
+    if((flag==1 &&  (ret==-2 || ret==-1)) || (flag ==-1 && (ret==1 || ret==2)) || ret==-3){
+      if(debug)
+	cerr << "Exiting mixedtrace. The matrix has mixed trace.\n";
+      return 1;
+    }
+    if(ret==-2||ret==-1)
+      flag=-1;
+    else if(ret==2||ret==1)
+      flag=1;
+  }
+
+  if(indeterminate){
+    if(debug)
+      cerr << "Exiting mixedtrace. Could not determine if the matrix has mixed trace: there were entries of unknown sign.\n";
+    return -1;
+  }
+  else{
+    if(debug)
+      cerr << "Exiting mixedtrace. The matrix does not have mixed trace.\n";
+    return 0;
+  }
+}
+
+//Overloading
+//Has mixed trace: yes means that the matrix has 
+//both positive and negative entries on the diagonal
+int mixedtrace(int **J, int n, int debug){
+  int i,flag=0,val;
+
+  for(i=0;i<n;i++){
+    val=J[i][i];
+    if((flag==1 &&  val<0) || (flag ==-1 && val>0))
+      return 1;
+    if(val>0)
+      flag=1;
+    else if(val<0)
+      flag=-1;
+  }
+  return 0;
+}
+
+
 //Sum of principal minors positive
 int isQmatrix(matrix J, int n){
   int xc[n];
@@ -2489,6 +2547,7 @@ int signsym(matrix J, int n, int maxpppdeg, int debug){
   if(debug){fprintf(stderr, "\n###Entering signsym.\n");}
 
   for(k=1;k<=n-1;k++){//no need for top dimension
+    //cout << "k = " << k << endl;
     firstcomb(xc, n, k);flag=1;
     while(flag==1){
       for(j=0;j<k;j++)
@@ -2515,6 +2574,8 @@ int signsym(matrix J, int n, int maxpppdeg, int debug){
   if(debug){fprintf(stderr, "Exiting signsym: the matrix is sign symmetric.\n");}
   return 1;
 }
+
+
 
 //The sign of the determinant of J. Return codes are those of ispospoly
 int DetSgn(matrix J, int n, int numv, int maxpppdeg, int debug){
@@ -2803,3 +2864,65 @@ int polytest(const char *file, const char *filter, int maxpppdeg, int debug){
   return polytest(expand(tmphom), numvhom, deg, dcfs, filter, maxpppdeg, debug);
 
 }
+
+
+
+//Return the mixed volume of a set of polynomials stored in file fname
+int polymixedvol(const char fname[], int debug){
+  int V=0,Vf,i,j,k,flag;
+  int **mons;double **cfs;int numv;
+  long totmons;int totpols;
+  bool **b;
+  int **Msum;
+  int nummin;
+
+  polysfromfile(fname,&mons,&cfs,&numv,&totmons,&totpols, debug);
+  if(numv!=totpols){
+   fprintf(stderr, "ERROR in \"polymixedvol\": this algorithm assumes an equal number of polynomials and variables. EXITING.\n");exit(0); 
+  }
+  if(debug){
+    fprintf(stderr, "monomials:\n");printmat(mons,numv,totmons);
+    fprintf(stderr, "coefficients:\n");printmat(cfs,totpols,totmons);
+  }
+
+  b=bmatrix(0, numv-1, 0, totmons-1);
+  inittozero(b,numv,totmons);
+  for(i=0;i<numv;i++){
+    for(j=0;j<totmons;j++){
+      if(cfs[i][j])
+	b[i][j]=1;
+    }
+  }
+  int xc[numv];
+
+  //Full volume
+  for(i=0;i<numv;i++){xc[i]=i;}
+  Msum=MinkowskiN(mons, numv, totmons, b, xc, numv, &nummin);
+  V=PolytopeVol(NULL, Msum, numv, nummin, debug);
+  free_imatrix(Msum, 0, numv-1, 0, nummin-1);
+  //fprintf(stderr, "V=%d/%d\n",V,(int)factorial(n));
+
+  for(k=1;k<numv;k++){
+    firstcomb(xc, numv, k);
+    flag=1;
+    while(flag==1){
+      Msum=MinkowskiN(mons, numv, totmons, b, xc, k, &nummin);
+      V+=(int)(pow(-1.0,(double(numv-k))))*PolytopeVol(NULL, Msum, numv, nummin, debug);
+      //printmat(Msum,n,nummin);
+      free_imatrix(Msum, 0, numv-1, 0, nummin-1);
+      flag=nextcomb(xc, numv, k);
+      //fprintf(stderr, "V=%d/%d\n",V,(int)factorial(n));
+    }
+  }
+  if(V%((int)factorial(numv))!=0){
+    fprintf(stderr, "Oops: something went wrong with the Mixed Volume calculation: not an integer. EXITING.\n");exit(0);
+  }
+  Vf=V/((int)factorial(numv));//should be an integer
+  if(debug){fprintf(stderr, "MixedVol=%d\n",Vf);}
+  free_bmatrix(b,0,numv-1,0,totmons-1);
+  free_imatrix(mons,0,numv-1,0,totmons-1);
+  free_dmatrix(cfs,0,totpols-1,0,totmons-1);
+ 
+  return Vf;
+}
+

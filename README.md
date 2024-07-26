@@ -1,6 +1,6 @@
 # CRNcode
 
-The code in this package was developed between 2010 and 2022 and reflects many eras and projects. Most is not carefully error checked. The main focus is the theory of chemical reaction networks (CRNs) - although there is some code whose utility goes beyond CRNs, most was originally inspired by this application. 
+The code in this package was developed between 2010 and 2024 and reflects many eras and projects. Most is not carefully error checked. The main focus is the theory of chemical reaction networks (CRNs) - although there is some code whose utility goes beyond CRNs, most was originally inspired by this application. 
 
 ###Prerequisites
 
@@ -28,9 +28,9 @@ If all goes well, the main binaries can be constructed with:
 
 ###Documentation
 
-The [manual](https://github.com/CRNcode/CRN/blob/main/docs/CRNcode.pdf) describes some features of the library. It is currently incomplete. 
+The [manual](https://github.com/CRNcode/CRN/blob/main/docs/CRNcode.pdf) describes some features of the library. It is currently very incomplete. 
 
 ###Folders associated with particular projects
 
-The [HopfAtoms folder](https://github.com/CRNcode/CRN/tree/main/HopfAtoms) contains scripts and data associated with the preprint *The smallest bimolecular mass action reaction networks admitting Andronov-Hopf bifurcation* (<https://arxiv.org/abs/2207.04971>) (with Balázs Boros; other scripts associated with this paper are on GitHub [here](https://github.com/balazsboros/reaction_networks/tree/main/3species_4reactions)).
+The [HopfAtoms folder](https://github.com/CRNcode/CRN/tree/main/HopfAtoms) contains scripts and data associated with the paper *The smallest bimolecular mass action reaction networks admitting Andronov-Hopf bifurcation* (<https://arxiv.org/abs/2207.04971>) (with Balázs Boros; other scripts associated with this paper are on GitHub [here](https://github.com/balazsboros/reaction_networks/tree/main/3species_4reactions)).
 

@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2022, Murad Banaji
+/* Copyright (C) 2010-2024, Murad Banaji
  *
  * This file is part of CRNcode
  *
@@ -1810,7 +1810,8 @@ int J2pIwrap(matrix J, int nlen, int numv, int maxpppdegree, int *pppdegused, in
   long r1,r2;
   ex tmp,tmp1;
   ex tmpr,tmpi;//real and imaginary parts
-  int numvinit, numvfinal, deg,allflg,ret1,retr,reti;
+  int numvinit, numvfinal, deg,allflg,ret1;
+  //int retr,reti;
   int debugfull=(debug<=0)?0:debug-1;
   (*pppdegused)=-1;
 
@@ -1819,15 +1820,21 @@ int J2pIwrap(matrix J, int nlen, int numv, int maxpppdegree, int *pppdegused, in
   tmpr=ReJpiI(J,nlen,numv,1);
   tmpi=ImJpiI(J,nlen,numv,1);
 
+  //cout << "tmpr = " << tmpr << endl;
+  //cout << "tmpi = " << tmpi << endl;
+  //exit(0);
+
   //Check polys individually
-  if((reti=ispospoly(expand(tmpi), numv, &allflg, 0, 0, maxpppdegree, pppdegused, debugfull))==2 || reti==-2 || (retr=ispospoly(expand(tmpr), numv, &allflg, 0, 0, maxpppdegree, pppdegused, debugfull))==2 || retr==-2){
-    if(debug){cerr << "One polynomial is positive so SOS definitely positive. Exiting J2pIwrap.\n";}
-    return 1;
-  }
+  /* if((reti=ispospoly(expand(tmpi), numv, &allflg, 0, 0, maxpppdegree, pppdegused, debugfull))==2 || reti==-2 || (retr=ispospoly(expand(tmpr), numv, &allflg, 0, 0, maxpppdegree, pppdegused, debugfull))==2 || retr==-2){ */
+  /*   if(debug){cerr << "One polynomial is positive so SOS definitely positive. Exiting J2pIwrap.\n";} */
+  /*   return 1; */
+  /* } */
 
   //Do SOS
   ReImJpiI(tmpr, tmpi, numv, &explst1, &cflst1, &r1, &explst2, &cflst2, &r2,1);
+  //cout << "r1,r2 = " << r1 << "," <<r2<<endl;
   tmp=lsts_to_poly(explst1, cflst1, r1, explst2, cflst2, r2, numv+1);
+  //cout << tmp << endl; exit(0);
   ifree(explst1,r1); ifree(explst2,r2);free((char*)cflst1); free((char*)cflst2);
 
   tmp1=polyhomsimp(expand(tmp), &numvinit, &numvfinal, &deg, 1, 0, debugfull);
@@ -1971,7 +1978,7 @@ int Hopfforbid(int **imatSi, int **imatSl, int nlen, int mlen, const char *filte
   if(!strcmp(filter, "JsquaredP0"))
     return 0;
 
-
+//cout << J << endl;exit(0);
   if(!strcmp(filter, "ALL") || !strcmp(filter, "GKonly") || !strcmp(filter, "J2pInonsing")){ // no filter or only check if J^2+I is nonsingular
     if((ret=J2pIwrap(J,nlen,numv,maxpppdeg,pppdegused,debugfull))==1){ // 1 for success, 0 for failure. 
       if(debug){cerr << "J2pInonsing: Using J2pIwrap, det(J^2+I) is positive on the positive orthant, ruling out Hopf bifurcation.\n\n";}

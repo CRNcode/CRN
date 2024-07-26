@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2022, Murad Banaji
+/* Copyright (C) 2010-2024, Murad Banaji
  *
  * This file is part of CRNcode
  *
@@ -500,12 +500,13 @@ void posintkervec(int **imat, int nlen, int mlen, int intvec[], bool q){
   }
 
   sols=J.solve(vars,kern);
-
+  //cerr<<sols<<endl;
   for(i=0;i<mlen;i++){
     x[i]=sols(i,0).subs(x[mlen-1]==1);
     y[i]=x[i].denom();
   }
   LCM=LCmult(y, mlen);
+  //cerr<<LCM<<endl;
   for(i=0;i<mlen;i++){
     z[i]=LCM*x[i];
     if(!(ex_to<numeric>(z[i]).is_integer())){
@@ -519,6 +520,253 @@ void posintkervec(int **imat, int nlen, int mlen, int intvec[], bool q){
   if(!q){fprintf(stderr, "positive vector in kernel: ");printvec(intvec,mlen);}
   return;
 }
+
+
+// Find a vector in the kernel of nlen X mlen matrix imat
+// Return in the vector intvec assumed to be of length mlen
+// Using GiNAC solver, and LCM
+// Assumes that it has already been checked that:
+// 2) ker(imat) is 1D, e.g. via checking the rank of imat
+void intkervec(int **imat, int nlen, int mlen, int intvec[], bool q){
+  int i;
+  matrix J = imattoexmat(imat, nlen, mlen);
+  matrix kern(nlen,1);
+  matrix vars(mlen,1);
+  ex x[mlen], y[mlen], z[mlen];
+  char sstr[5];
+  matrix sols;
+  ex LCM;
+  int lastnonz=mlen-1;
+
+  for(i=0;i<nlen;i++)//kernel vector
+    kern(i,0)=0;
+
+  if(!q){fprintf(stderr, "Checking matrix:\n");printmat(J,nlen,mlen);}
+
+  for(i=0;i<mlen;i++){//vector of unknowns
+    sprintf(sstr,"x%d",i);
+    x[i]=get_possymbol(sstr);
+    vars(i,0)=x[i];
+  }
+
+
+  sols=J.solve(vars,kern);
+  //cout<<sols<<endl;
+  for(i=mlen-1;i>=0;i--){
+    if(sols[i]!=0){
+      lastnonz=i;
+      //fprintf(stderr, "lastnonz=%d\n",lastnonz);
+      break;
+    }
+  }
+  //cerr<<sols<<endl;
+  for(i=0;i<mlen;i++){
+    x[i]=sols(i,0).subs(x[lastnonz]==1);
+    y[i]=x[i].denom();
+  }
+  LCM=LCmult(y, mlen);
+  //cerr<<LCM<<endl;
+  for(i=0;i<mlen;i++){
+    z[i]=LCM*x[i];
+    if(!(ex_to<numeric>(z[i]).is_integer())){
+      cerr<< "ERROR in intkervec. Noninteger quantity: " << z[i] << endl;
+      exit(0);
+    }
+    else
+      intvec[i]=ex_to<numeric>(z[i]).to_int();
+  }
+
+  if(!q){fprintf(stderr, "vector in kernel: ");printvec(intvec,mlen);}
+  return;
+}
+
+// A basis of minimal vectors for ker M.
+// "minimal" means with as many zeros as possible, corresonding
+int **minkerbasis(int **M, int n, int m, int *tot, int *rk, int *deg, int debug){
+  int kerdim;//dimension of kernel
+  int **basis=NULL;
+  int **basistmp;
+  int tottmp=0;
+  int **faces=NULL;
+  int **redSi;
+  int flag;
+  int i, k0;
+  int *alldegs;
+  int xc[n],yc[m],tmpvec[m],tmpvec1[m],tmpvec2[m];
+
+  if(debug){fprintf(stderr, "\n###Entering minkerbasis:\n");printmat(M,n,m);}
+  
+  (*tot)=0;
+
+  (*rk)=matrank(M,n,m);//rank of augmented matrix=dim(affhull(.))+1
+  kerdim=m-(*rk);
+  
+
+  //no vectors in kernel
+  //  if(kerdim<=0 || hasposrkervec(Si,n,m,1)!=1)
+  if(kerdim<=0){// deal with this possibility prior to using this routine
+    (*deg)=0;
+    fprintf(stderr, "ERROR in \"minkerbasis\": the kernel must not be trivial. EXITING.\n");
+    return NULL;
+  }
+
+  //basis=imatrix(0, kerdim-1, 0, m-1);
+  if(kerdim==1){
+    intkervec(M, n, m, tmpvec1,1);
+    (*tot)=addnewtoarray(&basis, *tot, tmpvec1, m);
+    (*deg)=sumpos(tmpvec1,m);
+    if(debug){fprintf(stderr, "deg = %d\n", (*deg));}
+    if(debug){fprintf(stderr, "###Exiting minkerbasis.\n");}
+    return basis;
+  }
+
+
+  firstcomb(xc, n, n);//all rows
+  k0=1;
+  while(k0<m){
+    firstcomb(yc, m, k0);flag=1;
+    while(flag==1){//each vector with support of size k0
+      //this should avoid non-extreme vectors being found; intkervec fails otherwise
+      if(!supervec(yc, k0, faces, tottmp)){
+	//fprintf(stderr, "%d\n", *tot);
+	redSi=submat(M,n,m,xc,n,yc,k0);
+	if(debug){fprintf(stderr, "**Checking submatrix:\n");printmat(redSi,n,k0);}
+	if(matrank(redSi, n, k0)<k0){// has nontrivial kernel
+	  intkervec(redSi, n, k0, tmpvec,1);
+	  merge(yc,tmpvec,k0,tmpvec1,m);
+	  addnewtoarray(&basistmp, tottmp, tmpvec1, m);
+	  //addnewtoarray(&basis, *tot, tmpvec1, m);
+	  addnewto1Darray(&alldegs, tottmp, sumpos(tmpvec1,m));
+
+	  if(debug){printvec(basistmp[tottmp],m);printvec(yc,k0);}
+	  tmpvec2[0]=k0;
+	  for(i=0;i<k0;i++)
+	    tmpvec2[i+1]=yc[i];
+	  addnewtoarray(&faces, tottmp, tmpvec2, k0+1);
+
+	  //(*tot)++;
+	  tottmp++;
+	}
+	free_imatrix(redSi,0,n-1,0,k0-1);
+      }
+      flag=nextcomb(yc, m, k0);
+    }
+    //if((*tot)<kerdim)
+      k0++;
+  }
+  if(tottmp<kerdim){
+    fprintf(stderr, "ERROR in \"minkerbasis\": could not find enough basis vectors. This shouldn't happen. EXITING.\n");
+    exit(0);
+  }
+
+  //Extract the best "kerdim" in terms of Bezout degree
+  int inds[tottmp];
+  for(i=0;i<tottmp;i++)
+    inds[i]=i;
+  qsort2(alldegs,inds,0,tottmp-1);
+  for(i=0;i<kerdim;i++){
+    addnewtoarray(&basis, *tot, basistmp[inds[i]], m);
+    (*tot)++;
+  }
+  (*deg)=1;
+  for(i=0;i<kerdim;i++)
+    (*deg)*=alldegs[i];
+
+  
+  free_imat(basistmp, tottmp);
+  free_imat(faces, tottmp);
+  if(debug){fprintf(stderr, "###Exiting minkerbasis.\n");}
+  free((char*)alldegs);
+  return basis;
+}
+
+
+//Extreme vectors of the positive kernel of Si as rows of output
+int **poskerbasis(int **Si, int n, int m, int *tot, int *rk){
+  (*rk)=matrank(Si,n,m);//rank
+  int kerdim=m-(*rk);//dimension of kernel
+  int xc[n],yc[m],tmpvec[m],tmpvec1[m],tmpvec2[m];
+  int **basis=NULL;
+  int **faces=NULL;
+  int **redSi;
+  int flag;
+  int i, k0;
+  int debug=0;
+  (*tot)=0;
+  if(debug){fprintf(stderr, "\n###Entering poskerbasis. Rank=%d\nSi:\n", (*rk));printmat(Si,n,m);}
+
+  //no +ve vectors in kernel
+  //  if(kerdim<=0 || hasposrkervec(Si,n,m,1)!=1)
+  if(kerdim<=0 || hasposlimvec(Si,n,m))
+    return NULL;
+
+  //basis=imatrix(0, kerdim-1, 0, m-1);
+  if(kerdim==1){
+    posintkervec(Si, n, m, tmpvec1,1);
+    (*tot)=addnewtoarray(&basis, *tot, tmpvec1, m);
+    return basis;
+  }
+
+
+  firstcomb(xc, n, n);//all rows
+  k0=2;//initial dimension set to two as we don't allow trivial reactions
+//  while(k0<=m-kerdim+1 /* && (*tot)<kerdim */){
+  while(k0<m){
+    firstcomb(yc, m, k0);flag=1;
+    while(flag==1){//each vector with support of size k0
+      //this should avoid non-extreme vectors being found; posintkervec fails otherwise
+      if(!supervec(yc, k0, faces, (*tot))){
+	//fprintf(stderr, "%d\n", *tot);
+	redSi=submat(Si,n,m,xc,n,yc,k0);
+	if(debug){fprintf(stderr, "**Checking submatrix:\n");printmat(redSi,n,k0);}
+	if(!hasposlimvec(redSi,n,k0)){
+	  posintkervec(redSi, n, k0, tmpvec,1);
+	  merge(yc,tmpvec,k0,tmpvec1,m);
+	  addnewtoarray(&basis, *tot, tmpvec1, m);
+	  if(debug){printvec(basis[(*tot)],m);printvec(yc,k0);}
+	  tmpvec2[0]=k0;
+	  for(i=0;i<k0;i++)
+	    tmpvec2[i+1]=yc[i];
+	  addnewtoarray(&faces, *tot, tmpvec2, k0+1);
+
+	  (*tot)++;
+	  if(kerdim<=2 && (*tot)==kerdim){//done
+	    free_imatrix(redSi,0,n-1,0,k0-1);
+	    free_imat(faces, *tot);
+	    if(debug){fprintf(stderr, "Exiting poskerbasis.\n");}
+	    return basis; 
+	  }
+	}
+	free_imatrix(redSi,0,n-1,0,k0-1);
+      }
+      flag=nextcomb(yc, m, k0);
+    }
+    //if((*tot)<kerdim)
+      k0++;
+  }
+
+
+  if((*tot)>kerdim){//only do this if we have a possibly non-simplicial cone
+    bool verts[*tot];
+    int numverts=getextremeraybool(basis, *tot, m, verts);
+    if(numverts!=*tot){//not all vectors found are extreme vectors: can this happen?
+      fprintf(stderr, "\tUnexpected behaviour in \"poskerbasis\".\n\tSome vectors found which were not extreme.\n\tExplore why. EXITING.\n");exit(0);
+      int tot1;
+      int **basisnew=submatfromrowbool(basis, *tot, m, verts, &tot1);
+      free_imat(faces, *tot);
+      free_imat(basis, *tot);
+      (*tot)=tot1;
+      return basisnew;
+    }
+    else if(debug)
+      fprintf(stderr, "The positive part of the kernel forms a non-simplicial cone.\n");
+  }
+  free_imat(faces, *tot);
+  if(debug){fprintf(stderr, "Exiting poskerbasis.\n");}
+  return basis;
+}
+
+
 
 
 // Does imat1 have a nonnegative vector in its image?
@@ -921,6 +1169,18 @@ int **conemat(int **A, int n, int m, bool *verts, int *m1){
   return C;
 }
 
+//dimension of affine hull of columns of A
+int affrank(int **A, int n, int m){
+  int i,ret;
+  int **C=imatrix(0, n, 0, m);
+  cpmat(A,C,n,m);
+  for(i=0;i<m;i++)//row of ones
+    C[n][i]=1;
+  ret=matrank(C,n+1,m);
+  free_imatrix(C,0,n,0,m-1);
+  return ret-1;  
+}
+
 //Get the facial structure of the convex hull of a set of points which are
 //the columns of the n X m matrix Sl. Assume no repeated columns: these should
 //be removed in a preprocessing stage
@@ -1177,10 +1437,198 @@ int getfacestruct1(int **Sl, int n, int m, bool *verts, bool ***allfacets, int *
     addnewto1Darray(rankvec, ((*rk)-1-k), curtot);
   }
 
+  if(debug)
+    fprintf(stderr, "\n###Exiting getfacestruct1.\n\n");
+
   free((char*)triagevec);
   free_bmat(allfacetcands,totfacetcands);
   free_imatrix(vertmat,0,n,0,m1-1);
   return numfacets;
+}
+
+//returns number of triangles just added
+int triangulate(bool *F, int m1, int rkF, bool **faces, int numfaces, int toprank, int *rankvec, bool ***Trs, int *totTrs, int *level, int debug){
+  int pos;
+  int v,i,i0,j;
+  int newTrs;
+  int totadded=0;
+  (*level)++;
+  if(debug){
+    fprintf(stderr, "###\nEntering \"triangulate\" (level %d)\n", *level);
+    fprintf(stderr, "now triangulating...\n");printvec(F,m1);
+  }	
+  if(rkF<=1 ||nonzentries(F,m1)==rkF+1){//1D or already simplicial
+    (*totTrs)=addvec1((*totTrs), F, m1, Trs, 0, &pos);
+    if(debug){fprintf(stderr, "(already triangulated)\n");}
+    (*level)--;
+    return 1;
+  }
+  v=firstnonz(F,m1);//first vertex
+
+  if(rkF==toprank)
+    i0=0;
+  else{
+    i0=0;
+    for(j=0;j<toprank-rkF;j++)
+      i0+=rankvec[j];
+  }
+  //fprintf(stderr, "i0=%d, i1=%d\n",i0,i0+rankvec[toprank-rkF]);exit(0);
+  for(i=i0;i<i0+rankvec[toprank-rkF];i++){
+    //fprintf(stderr, "(v=%d), i=%d: ",v,i);printvec(faces[i],m1);
+    if(!nonz(faces[i],m1,v) && issubvec(faces[i],F,m1)){//subface doesn't include v
+      if(debug){fprintf(stderr, "now checking (dim %d)...\n", rkF-1);printvec(faces[i],m1);}
+      newTrs=triangulate(faces[i], m1, rkF-1, faces, numfaces, toprank, rankvec, Trs, totTrs, level, debug);
+      if(debug){fprintf(stderr, "i=%d, Triangles so far: %d\n",i, *totTrs);}
+      for(j=(*totTrs)-newTrs;j<(*totTrs);j++){//add in v
+	(*Trs)[j][v]=1;
+      }
+      totadded+=newTrs;
+    }
+  }
+
+  (*level)--;
+  return totadded;
+  
+}
+
+
+//Minkowski sum of two sets of points: return vertices of the convex hull
+//in a matrix. Put the number of vertices in numverts
+//Can set b1, b2 to be NULL: means use all columns
+int **Minkowski2(int **Sl1, int n, int m1, bool *b1, int **Sl2, int m2, bool *b2, int *numverts){
+  int **tmpmat=imatrix(0, n, 0, m1*m2);
+  int **tmpmat2;
+  int m0;
+  int pat[m1*m2]; //not used
+  int j1, j2, i, tot=0;
+  int **vertmat;
+  for(j1=0;j1<m1;j1++){
+    for(j2=0;j2<m2;j2++){
+      if((!b1 || b1[j1]) && (!b2 || b2[j2])){
+	for(i=0;i<n;i++){
+	  tmpmat[i][tot]=Sl1[i][j1]+Sl2[i][j2];
+	}
+	tot++;
+      }
+    }
+  }
+  //printmat(tmpmat,n,tot);
+  tmpmat2=redmat1(tmpmat,n,tot,&m0,pat);//remove repeated cols
+  //printmat(tmpmat2,n,m0);
+  
+  bool verts[m0];
+  (*numverts)=getvertboolT(tmpmat2, n, m0, verts);//vertex indices
+  vertmat=submatfromcolbool(tmpmat2, n, m0, verts, numverts);//vertices matrix
+  //printmat(vertmat,n,*numverts);
+  free_imatrix(tmpmat,0,n-1,0,m1*m2-1);
+  free_imatrix(tmpmat2,0,n-1,0,m0-1);
+
+  return vertmat;
+
+}
+
+//Minkowski sum of numR poltopes constructed from a common set of vertices
+//vertices are columns of Sl
+//Each row of b1 defines a polytope
+int **MinkowskiN(int **Sl, int n, int m, bool **b, int *yc, int k, int *numverts){
+  int i,m0;
+  int mtmp[k-1];
+  int **Stmp[k-1];
+  int pat[m]; //not used
+  int **Sl0, **Sl1;
+  int **vertmat;
+  int len;
+  if(k<1){
+    fprintf(stderr, "\"MinkowskiN\" requires at least 1 polytope. EXITING.\n");exit(0);
+  }
+
+  if(k==1){//Just get the vertices of convex hull
+    Sl0=submatfromcolbool(Sl, n, m, b[yc[0]], &len);
+    Sl1=redmat1(Sl0,n,len,&m0,pat);//remove repeated cols
+    bool verts[m0];
+    (*numverts)=getvertboolT(Sl1, n, m0, verts);//vertex indices
+    vertmat=submatfromcolbool(Sl1, n, m0, verts, numverts);//vertices matrix
+    free_imatrix(Sl0,0,n-1,0,len-1);
+    free_imatrix(Sl1,0,n-1,0,m0-1);
+    return vertmat;
+  }
+  //printmat(b,n,m);exit(0);
+  Stmp[0]=Minkowski2(Sl, n, m, b[yc[0]], Sl, m, b[yc[1]], mtmp+0);
+  for(i=1;i<k-1;i++){
+    Stmp[i]=Minkowski2(Stmp[i-1], n, mtmp[i-1], NULL, Sl, m, b[yc[i+1]], mtmp+i);
+  }
+
+  for(i=0;i<k-2;i++)
+    free_imatrix(Stmp[i],0,n,0,mtmp[i]);
+  (*numverts)=mtmp[k-2];
+  return Stmp[k-2];
+}
+
+
+// Get the volume of a polytope (n-dim volume where n is the
+// dimension of the ambient space)
+int PolytopeVol(int **S, int **Sl, int n, int m, int debug){
+  int i, j, m0,m1, numfaces;
+  //faces of dimension 2 to rk-1
+  bool **allfaces=NULL;
+  int rank, *rankvec;
+  int pat[m];
+  int **Sl0;
+  int debugfull=(debug<=0)?0:debug-1;
+  bool **Trs;
+  int totTrs=0;
+  int V=0;
+  int totverts;
+  int **Sl1;
+  int level=0;
+    
+  if(debug){fprintf(stderr, "\n###Entering PolytopeVol\n");}
+  //fprintf(stderr, "%d, %d, %d\n",n,m,affrank(Sl,n,m));
+  if(affrank(Sl,n,m)<n){
+    if(debug){fprintf(stderr, "Lower dimensional polytope: Volume = 0\n###Exiting PolytopeVol\n");}
+    return 0;
+  }
+
+  Sl0=redmat1(Sl,n,m,&m0,pat);//remove repeated cols (store the pattern)
+  bool verts[m0];
+  totverts=getvertboolT(Sl0, n, m0, verts);//get the vertices
+  Sl1=submatfromcolbool(Sl0, n, m0, verts, &m1);//keep only vertices
+
+  
+  //subtract first vertex from all vertices
+  for(j=1;j<m1;j++){
+    for(i=0;i<n;i++){
+      Sl1[i][j]-=Sl1[i][0];
+    }
+  }
+  for(i=0;i<n;i++)
+    Sl1[i][0]=0;
+
+  numfaces=getfacestruct1(Sl1, n, m1, verts, &allfaces, &rank, &rankvec, &totverts, debugfull);
+    
+  if(debug){fprintf(stderr, "Points:\n");printmat(Sl1,n,m1);}
+
+  triangulate(verts, m1, rank-1, allfaces, numfaces, rank-1, rankvec, &Trs, &totTrs, &level, debugfull);
+
+  for(i=0;i<totTrs;i++){
+    if(debug){printvec(Trs[i],m1);}
+    Trs[i][0]=0;//base vertex
+    V+=abs(detsubmat(Sl1, n, m1, NULL, Trs[i]));
+    if(debug){fprintf(stderr, "Current total Vol = %d/%d\n", V, (int)(factorial(rank-1)));}
+  }
+
+    
+  //fprintf(stderr, "Total (%d)-Vol = %d/%d\n", rank-1, V, ((int)(factorial(rank-1))));
+  free_imatrix(Sl0, 0, n-1, 0, m0-1);
+  free_imatrix(Sl1, 0, n-1, 0, m1-1);
+  free_bmat(allfaces, numfaces);
+  free_bmat(Trs, totTrs);
+  if(numfaces)
+    free((char*)rankvec);
+
+  if(debug){fprintf(stderr, "\n###Exiting PolytopeVol; Vol=%d/(%d!)\n",V,n);}
+
+  return V;
 }
 
 

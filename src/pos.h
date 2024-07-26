@@ -63,6 +63,8 @@ int isP0matorth(matrix J, int n, bool skiptop, int maxpppdeg, int *pppdegused, i
 int isP0matorth(int **J, int n, bool skiptop, int debug);
 int isP0matorth(matrix J, int n, int maxpppdeg, int debug);
 int isP0matorth(int **J, int n, int debug);
+int mixedtrace(matrix J, int n, int maxpppdeg, int *pppdegused, int debug);
+int mixedtrace(int **J, int n, int debug);
 int isQmatrix(matrix J, int n);
 int signsym(int **J, int n);
 int signsym(matrix J, int n, int maxpppdeg, int debug);
@@ -70,3 +72,4 @@ int AdComp2DetPos(matrix J, int n, int numv, int maxpppdeg, int *pppdegused, int
 int AdComp2isP0(matrix J, int n, int maxpppdeg, int debug);
 int polytest(ex tmp, int numv, int deg, int dcfs, const char *filter, int maxpppdeg, int debug);
 int polytest(const char *file, const char *filter, int maxpppdeg, int debug);
+int polymixedvol(const char fname[], int debug);

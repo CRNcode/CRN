@@ -23,6 +23,9 @@ using namespace GiNaC;
 
 void elongate(int ***explst, int **cflst, long *r, int numv);
 void homify(int **lst1, long r1, int **lst2, long r2, int numv);
+ex ReJpiI(matrix J, int n, int numv, bool hom);
+ex ImJpiI(matrix J, int n, int numv, int hom);
+void ReImJpiI(ex tmp1, ex tmp2, int numv, int ***explst1, int **cflst1, long *r1, int ***explst2, int **cflst2, long *r2, bool hom);
 void ReImJpiI(matrix J, int n, int numv, int ***explst1, int **cflst1, long *r1, int ***explst2, int **cflst2, long *r2, bool hom);
 int BTpotential(matrix J, int n, int rk, int numv, int maxpppdegree, int *pppdegused, int debug);
 ex lsts_to_poly(int **explst1, int *cflst1, long r1, int **explst2, int *cflst2, long r2, int numv);

@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2022, Murad Banaji
+/* Copyright (C) 2010-2024, Murad Banaji
  *
  * This file is part of CRNcode
  *

@@ -24,7 +24,7 @@ AR      =       ar crs
 
 OBJECTS =	src/obj/pos.o src/obj/basics.o src/obj/convex.o src/obj/symbolic.o src/obj/semidef.o src/obj/analysereacs.o src/obj/hopf.o src/obj/isomorph.o
 
-project: bin/polytest bin/ruleouthopf bin/processreacs bin/reacreport bin/convertformat bin/filterCRNs bin/genbimol bin/DSRanal bin/supCRN bin/compareCRNlists bin/getallisomorphs
+project: bin/polytest bin/polymixedvol bin/ruleouthopf bin/processreacs bin/reacreport bin/convertformat bin/filterCRNs bin/genbimol bin/genbitrimol bin/genzeroonetritrimol bin/genbimultimol bin/DSRanal bin/supCRN bin/compareCRNlists bin/CRNwithsources bin/getallisomorphs
 
 clean: 
 	rm bin/* src/lib/libcrn.a src/obj/*.o
@@ -42,6 +42,9 @@ src/lib/libcrn.a: $(HEADERS) $(OBJECTS)
 
 bin/polytest: src/polytest.c $(MAINLIB)
 	$(CXX) -o bin/polytest src/polytest.c -lm -Lsrc/lib $(MAINLINK)
+
+bin/polymixedvol: src/polymixedvol.c $(MAINLIB)
+	$(CXX) -o bin/polymixedvol src/polymixedvol.c -lm -Lsrc/lib $(MAINLINK)
 
 bin/processreacs: src/processreacs.c $(MAINLIB)
 	$(CXX) -o bin/processreacs src/processreacs.c -lm -Lsrc/lib $(MAINLINK)
@@ -61,6 +64,15 @@ bin/filterCRNs: src/filterCRNs.c $(MAINLIB)
 bin/genbimol: src/genbimol.c $(MAINLIB)
 	$(CXX) -o bin/genbimol src/genbimol.c -lm -Lsrc/lib $(MAINLINK)
 
+bin/genbitrimol: src/genbitrimol.c $(MAINLIB)
+	$(CXX) -o bin/genbitrimol src/genbitrimol.c -lm -Lsrc/lib $(MAINLINK)
+
+bin/genzeroonetritrimol: src/genzeroonetritrimol.c $(MAINLIB)
+	$(CXX) -o bin/genzeroonetritrimol src/genzeroonetritrimol.c -lm -Lsrc/lib $(MAINLINK)
+
+bin/genbimultimol: src/genbimultimol.c $(MAINLIB)
+	$(CXX) -o bin/genbimultimol src/genbimultimol.c -lm -Lsrc/lib $(MAINLINK)
+
 bin/DSRanal: src/DSRanal.c $(MAINLIB)
 	$(CXX) -o bin/DSRanal src/DSRanal.c -lm -Lsrc/lib $(MAINLINK)
 
@@ -70,9 +82,15 @@ bin/supCRN: src/supCRN.c $(MAINLIB)
 bin/compareCRNlists: src/compareCRNlists.c $(MAINLIB)
 	$(CXX) -o bin/compareCRNlists src/compareCRNlists.c -lm -Lsrc/lib $(MAINLINK)
 
+bin/CRNwithsources: src/CRNwithsources.c $(MAINLIB)
+	$(CXX) -o bin/CRNwithsources src/CRNwithsources.c -lm -Lsrc/lib $(MAINLINK)
+
 bin/getallisomorphs: src/getallisomorphs.c $(MAINLIB)
 	$(CXX) -o bin/getallisomorphs src/getallisomorphs.c -lm -Lsrc/lib $(MAINLINK)
 
 bin/relconc: src/relconc.c $(MAINLIB)
 	$(CXX) -o bin/relconc src/relconc.c -lm -Lsrc/lib $(MAINLINK)
+
+bin/DF: src/DF.c $(MAINLIB)
+	$(CXX) -o bin/DF src/DF.c -lm -Lsrc/lib $(MAINLINK)
 

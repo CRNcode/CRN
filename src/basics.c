@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2022, Murad Banaji
+/* Copyright (C) 2010-2024, Murad Banaji
  *
  * This file is part of CRNcode
  *
@@ -230,6 +230,56 @@ int issubvec(bool *vec1, bool **vec2, int strt, int finish, int n){
   return -1;
 }
 
+// Is the ordered int list A a subset of the ordered int list B?
+bool AsubsB(int *A, int szA, int *B, int szB){
+  int lastfree=0;
+  int i,j;
+  bool flg;
+
+  if(szA > szB)
+    return 0;
+
+  //  printvec(A,szA);  printvec(B,szB);
+  for(i=0;i<szA;i++){
+    if(lastfree>=szB)// off the end of superset
+      return 0;
+    flg=0;
+    for(j=lastfree;j<szB;j++){
+      if(B[j]>A[i])
+	return 0;
+      if(B[j]==A[i]){
+	lastfree=j+1;
+	flg=1;
+	break;
+      }
+    }
+    if(!flg)
+      return 0;
+  }
+  return 1;
+}
+
+
+bool supervec(int *A, int szA, int **B, int totB){
+  int i;
+  for(i=0;i<totB;i++){
+    //fprintf(stderr, "checking:\n");printvec(A,szA);printvec(B[i]+1,B[i][0]);
+    if(AsubsB(B[i]+1, B[i][0], A, szA)){//Does the support of A contain that of any previously gathered?
+      //fprintf(stderr, "superset:\n");printvec(A,szA);printvec(B[i]+1,B[i][0]);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+void merge(int *xc, int *tmpvec, int k, int *outvec, int m){
+  int i;
+  inittozero(outvec,m);
+  for(i=0;i<k;i++)
+    outvec[xc[i]]=tmpvec[i];
+  return;
+}
+
 
 
 void inittozero(int *vec, int len){
@@ -252,6 +302,15 @@ void inittozero(double *vec, int len){
 } 
 
 void inittozero(int **mat, int n, int m){
+  int j,k;
+  for(j=0;j<n;j++){
+    for(k=0;k<m;k++){
+      mat[j][k]=0;
+    }
+  }
+} 
+
+void inittozero(bool **mat, int n, int m){
   int j,k;
   for(j=0;j<n;j++){
     for(k=0;k<m;k++){
@@ -1546,6 +1605,20 @@ void nextcombk(int *vec, int n, int n1, long k){
   return;
 }
 
+//Take a combination and translate to stars and bars
+//We interpret entries in vec as positions of the "bars"
+//We output a vector of the number of "stars" between bars
+//vecout of length n1+1
+int starbar(int *vec, int n, int n1, int *vecout){
+  int i,tot=0;
+  vecout[0]=vec[0];tot+=vecout[0];
+  for(i=1;i<n1;i++){
+    vecout[i] = vec[i]-vec[i-1]-1;
+    tot+=vecout[i];
+  }
+  vecout[n1]=n-n1-tot;
+  return 0;
+}
 
 // return all permutations of [0...n-1]
 // should be okay for n upto about 10
@@ -1893,6 +1966,18 @@ void printmat(int **imat, int n, int m){
   for(i=0;i<n;i++){
     for(j=0;j<m;j++)
       fprintf(stderr, "%2d ", imat[i][j]);
+    fprintf(stderr, "\n");
+  }
+  fprintf(stderr, "\n");
+  return;
+}
+
+//output to stderr/cerr
+void printmat(double **imat, int n, int m){
+  int i,j;
+  for(i=0;i<n;i++){
+    for(j=0;j<m;j++)
+      fprintf(stderr, "%.4f ", imat[i][j]);
     fprintf(stderr, "\n");
   }
   fprintf(stderr, "\n");
@@ -2662,6 +2747,129 @@ void cpmat(int **mat, int **out, int n, int m){
   return;
 }
 
+// is column k of matrix mat (with n rows) equal or plus/minus an earlier column?
+bool eqorminus(int **mat, int n, int k){
+  int i=0,j;
+  int flgminus=1;
+  int flg=1;
+  if(k==0)
+    return 0;
+
+  for(j=0;j<k;j++){ //each previous col
+    i=0;flgminus=1;flg=1;
+    while(i<n && mat[i][j]==0 && mat[i][k]==0)//initial zeros
+      i++;
+    if(mat[i][j]==mat[i][k])
+      i++;
+    else if (mat[i][j]==-mat[i][k]){
+      flgminus=-1;i++;
+    }
+    else
+      flg=0;
+    while(flg && i<n){
+      if(mat[i][j]!=flgminus*mat[i][k])
+	flg=0;
+      i++;
+    }
+    if(flg)
+      return 1;
+  }
+  return 0;
+}
+
+
+// list repeated columns (possibly after a sign change) 
+// of an n X m matrix mat. Store the information in a binary vector
+// of what to keep and what to discard
+int reps(int **mat, int n, int m, bool **keeps){
+  int k, tot=1;
+  (*keeps)[0]=1;
+  for(k=1;k<m;k++){// keep the first column
+    if(eqorminus(mat, n, k))
+      (*keeps)[k]=0;
+    else{
+      (*keeps)[k]=1;tot++;
+    }
+  }
+  return tot;
+}
+
+
+// does column k of matrix mat (with n rows) appear earlier?
+//return the first instance or -1 if first 
+int repcol(int **mat, int n, int k){
+  int i=0,j;
+  int flg=1;
+  if(k==0)
+    return -1;
+
+  for(j=0;j<k;j++){ //each previous col
+    i=0;flg=1;
+    while(i<n){
+      if(mat[i][j]!=mat[i][k]){
+	flg=0;
+	break;
+      }
+      i++;
+    }
+    if(flg)
+      return j;
+  }
+  return -1;
+}
+
+//return total unique columns
+int repcolsall(int **mat, int n, int m, int *pat){
+  int k, tot=1;
+  pat[0]=-1;
+  for(k=1;k<m;k++){// keep the first column
+    if((pat[k]=repcol(mat, n, k))==-1)
+      tot++;
+  }
+  return tot;
+}
+
+
+// remove columns which, upto sign change, appear previously 
+int **redmat(int **mat, int n, int m, int *m1){
+  bool *keeps=(bool *)malloc((size_t) ((m)*sizeof(bool)));
+  int **tmp;
+  int i,j,tot=0;
+
+  (*m1)=reps(mat,n,m,&keeps);
+  tmp=imatrix(0, n-1, 0, (*m1)-1);
+  for(i=0;i<m;i++){//column
+    if(keeps[i]){
+      for(j=0;j<n;j++)//row
+	tmp[j][tot]=mat[j][i];
+      tot++;
+    }
+  }
+  free((char*)keeps);
+  return tmp;
+}
+
+
+// remove repeated columns from a matrix: keep only first instance
+int **redmat1(int **mat, int n, int m, int *m1, int *pat){
+  int **tmp;
+  int i,j,tot=0;
+
+  (*m1)=repcolsall(mat,n,m,pat);
+
+  tmp=imatrix(0, n-1, 0, (*m1)-1);
+  for(i=0;i<m;i++){//column
+    if(pat[i]==-1){//keep
+      for(j=0;j<n;j++)//row
+	tmp[j][tot]=mat[j][i];
+      tot++;
+    }
+  }
+  return tmp;
+}
+
+
+
 //Are all diagonal entries of a square matrix positive?
 bool hasposdiag(int **imat, int n){
   int i;
@@ -3016,6 +3224,18 @@ int **submat(int **imat, int n, int m, int *xc, int n1, int *yc, int m1){
   return tmp;
 }
 
+//submatrix with rows indexed by xc and cols by yc
+matrix submat(matrix imat, int *xc, int n1, int *yc, int m1){
+  matrix tmp(n1,m1);
+  int i,j;
+  for(i=0;i<n1;i++){
+    for(j=0;j<m1;j++){
+      tmp(i,j)=imat(xc[i],yc[j]);
+    }
+  }
+  return tmp;
+}
+
 // Extract the negative part of a matrix
 int **submatminus(int **mat, int n, int m){
   int i,j;
@@ -3077,6 +3297,42 @@ int nonzentries(int **imat, int n, int m){
   return tot;
 }
 
+//first nonzero entry (int vector)
+int firstnonz(int *vec, int n){
+  int i;
+  for(i=0;i<n;i++){
+    if(vec[i])
+      return i;
+  }
+  return -1;
+}
+
+//first nonzero entry (bool vector)
+int firstnonz(bool *vec, int n){
+  int i;
+  for(i=0;i<n;i++){
+    if(vec[i])
+      return i;
+  }
+  return -1;
+}
+
+//is nonzero entry (int vector)
+bool nonz(int *vec, int n, int i){
+  if(vec[i])
+    return 1;
+  return 0;
+}
+
+//is nonzero entry (int vector)
+bool nonz(bool *vec, int n, int i){
+  if(vec[i])
+    return 1;
+  return 0;
+}
+
+
+
 //determinant
 int det(int **imat, int n){
   int i;
@@ -3124,6 +3380,27 @@ int detsubmat(int **imat, int n, int m, int *i1, int *i2, int dim){
   return tot;
 
 }
+
+//Here x and y are boolean vectors of lengths n and m respectively
+//assumed to have the same number of nonzero entries
+int detsubmat(int **imat, int n, int m, bool *x, bool *y){
+  int i,dimx,dimy,tot;
+  if(!x){dimx=n;}else{dimx=nonzentries(x,n);}
+  if(!y){dimy=m;}else{dimy=nonzentries(y,m);}
+  if(dimx!=dimy){fprintf(stderr, "ERROR in detsubmat (%d X %d): need a nonempty square matrix. EXITING.\n",dimx,dimy);exit(0);}
+  int i1[dimx];
+  int i2[dimx];
+  tot=0;
+  if(!x){for(i=0;i<n;i++){i1[tot++]=i;}}
+  else{for(i=0;i<n;i++){if(nonz(x,n,i)){i1[tot++]=i;}}}
+  tot=0;
+  if(!y){for(i=0;i<m;i++){i2[tot++]=i;}}
+  else{for(i=0;i<m;i++){if(nonz(y,m,i)){i2[tot++]=i;}}}
+  
+  return detsubmat(imat, n, m, i1, i2, dimx);
+
+}
+
 
 
 // multiply two matrices A and B of dimensions nXr and rXm
@@ -3283,7 +3560,8 @@ int **multABT(int **S, int **V, int n, int m){
 
 
 // the symbolic determinant of a symbolic matrix
-// returns in expanded form
+// returns in expanded form (very inefficient!
+// Leibniz formula: only use for small matrices)
 
 ex symbdetsubmat(matrix imat, int n, int m, int *i1, int *i2, int dim){
   int i, j, r;
@@ -3559,3 +3837,12 @@ int Tarjan_light(int **mat, int n){
   return totS;
 }
 
+//sum of positive elements in a vector
+int sumpos(int *vec, int m){
+  int i,tot=0;
+  for(i=0;i<m;i++){
+    if(vec[i]>0)
+      tot+=vec[i];
+  }
+  return tot;
+}

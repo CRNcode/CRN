@@ -19,6 +19,9 @@
 
  */
 
+//At most bimolecular reactant complexes and at most tetramolecular
+//product complexes
+
 #include "isomorph.h"
 #include "basics.h"
 
@@ -28,11 +31,11 @@ int main(int argc, char *argv[]){
   int mainargs=0;
   char *outfile;
   const char *filter=NULL;
-  int open=0, rev=0;
-  int numspec, numreac;
+  int open=0;
+  int numspec, numreac, outmol;
   char HelpStr[2000];
 
-  sprintf(HelpStr, "\nExample command:\n\t%s -fWR s3r4WR.d6 3 4\n\nMeaning:\n\tGenerate all (nonisomorphic) bimolecular CRNs on 3 species and\n\t4 reactions which are also weakly reversible. Write these in\n\tdigraph6 format to the file \"s3r4WR.d6\"\n\nOptions:\n\t\"-v\" means verbose output;\n\t\"-f[filter]\" means a filter. E.g., \"DN\" means dynamically\n\tnontrivial, \"WR\" means weakly reversible, \"connect\" means reactions\n\twith connected Petri Net graphs, \"rev\" means reversible,\n\t\"ALL\", which is the default. Some filters can be strung together\n\t - e.g. \"DNgenuine\" means dynamically nontrivial and genuine.\n\nArguments (after the options, three mandatory, one optional):\n\toutput file\n\tnumber of species\n\tnumber of reactions (irreversible unless you used option -frev)\n\tFinally an optional argument \"open\" means forbid reactions of the\n\tform 0 --> X and X --> 0. You can construct all fully open networks\n\tby adding in all the flows to these networks.\n\nNote that you can always filter reactions later - this may be better than\nfiltering as they are generated. You can also later convert to other formats.\n\n", argv[0]);
+  sprintf(HelpStr, "\nExample command:\n\t%s s3r4.d6 3 4 3\n\nMeaning:\n\tGenerate all (nonisomorphic) CRNs on 3 species and\n\t4 reactions with at most bimolecular reactant complexes,\n\tand at most trimolecular product complexes. Write these in\n\tdigraph6 format to the file \"s3r4.d6\"\n\nOptions:\n\t\"-v\" means verbose output;\n\t\"-f[filter]\" means a filter. E.g., \"DN\" means dynamically\n\tnontrivial, \"connect\" means reactions\n\twith connected Petri Net graphs,\n\t\"ALL\", which is the default. Some filters can be strung together\n\t - e.g. \"DNgenuine\" means dynamically nontrivial and genuine.\n\nArguments (after the options, three mandatory, one optional):\n\toutput file\n\tnumber of species\n\tnumber of (irreversible) reactions\n\tmaximum molecularity of product complexes\n\tFinally an optional argument \"open\" means forbid reactions of the\n\tform 0 --> X and X --> 0. You can construct all fully open networks\n\tby adding in all the flows to these networks.\n\nNote that you can always filter reactions later - this may be better than\nfiltering as they are generated. You can also later convert to other formats.\n\n", argv[0]);
 
   //options?
   while ((opt = getopt(argc, argv, "vf:hd:")) != -1) {
@@ -74,6 +77,12 @@ int main(int argc, char *argv[]){
       numreac=atoi(argv[optind]);
       break;
     case 3:
+      if(!ispureint(argv[optind])){
+	fprintf(stderr, "The third argument \"%s\" must be the maximum molecularity of the product complexes. EXITING.\n", argv[optind]);exit(EXIT_FAILURE);
+      }
+      outmol=atoi(argv[optind]);
+      break;
+    case 4:
       if(!strcmp(argv[optind], "open"))
 	open=1;
       break;
@@ -81,23 +90,17 @@ int main(int argc, char *argv[]){
     mainargs++;
     optind++;
   }
-  if(mainargs<3){
-    fprintf(stderr, "You must supply at least three arguments.\n%s", HelpStr);
+  if(mainargs<4){
+    fprintf(stderr, "You must supply at least four arguments.\n%s", HelpStr);
     exit(0); 
   }
 
-  if(filter && !strcmp(filter, "rev")){
-    rev=1;
-    filter="ALL";
-  }
-  else if(!filter)
+  if(!filter)
     filter="ALL";
 
-  if(!strcmp(filter, "LHS"))
-    genmultisrc(numspec,numreac,outfile,2,debug);
-  else
-    genbimol(numspec,numreac,outfile,open,rev,filter,debug);
-  
+  genbimultimol(numspec,numreac,outfile,open,filter,outmol,debug);
+//  genbitetramol(numspec,numreac,outfile,open,filter,debug);
+
   return 0;
 }
 

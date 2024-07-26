@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2022, Murad Banaji
+/* Copyright (C) 2010-2024, Murad Banaji
  *
  * This file is part of CRNcode
  *
@@ -29,7 +29,7 @@
 
 //#include <iostream>
 
-/* note that these are the most efficient */
+/* note that these are not the most efficient */
 /* algorithms. Also there is very little error checking  */
 /* (to maximise speed), and if the routines are used carelessly,  */
 /* it is possible to leak memory.  */
@@ -314,35 +314,6 @@ int matrixisSNSSS(int **imat, int n){
 
 }
 
-// is column k of matrix mat (with n rows) equal or plus/minus an earlier column?
-bool eqorminus(int **mat, int n, int k){
-  int i=0,j;
-  int flgminus=1;
-  int flg=1;
-  if(k==0)
-    return 0;
-
-  for(j=0;j<k;j++){ //each previous col
-    i=0;flgminus=1;flg=1;
-    while(i<n && mat[i][j]==0 && mat[i][k]==0)//initial zeros
-      i++;
-    if(mat[i][j]==mat[i][k])
-      i++;
-    else if (mat[i][j]==-mat[i][k]){
-      flgminus=-1;i++;
-    }
-    else
-      flg=0;
-    while(flg && i<n){
-      if(mat[i][j]!=flgminus*mat[i][k])
-	flg=0;
-      i++;
-    }
-    if(flg)
-      return 1;
-  }
-  return 0;
-}
 
 
 
@@ -456,96 +427,6 @@ int mergecols(int **S, int **V, int n, int m, int ***Sout, int ***Vout, int *mou
 }
 
 
-// list repeated columns (possibly after a sign change) 
-// of an n X m matrix mat. Store the information in a binary vector
-// of what to keep and what to discard
-
-int reps(int **mat, int n, int m, bool **keeps){
-  int k, tot=1;
-  (*keeps)[0]=1;
-  for(k=1;k<m;k++){// keep the first column
-    if(eqorminus(mat, n, k))
-      (*keeps)[k]=0;
-    else{
-      (*keeps)[k]=1;tot++;
-    }
-  }
-  return tot;
-}
-
-// remove redundant columns from a stoichiometric matrix
-// i.e. columns which (upto sign change) appear previously 
-
-int **redmat(int **mat, int n, int m, int *m1){
-  bool *keeps=(bool *)malloc((size_t) ((m)*sizeof(bool)));
-  int **tmp;
-  int i,j,tot=0;
-
-  (*m1)=reps(mat,n,m,&keeps);
-  tmp=imatrix(0, n-1, 0, (*m1)-1);
-  for(i=0;i<m;i++){//column
-    if(keeps[i]){
-      for(j=0;j<n;j++)//row
-	tmp[j][tot]=mat[j][i];
-      tot++;
-    }
-  }
-  free((char*)keeps);
-  return tmp;
-}
-
-// does column k of matrix mat (with n rows) appear earlier?
-//return the first instance or -1 if first 
-int repcol(int **mat, int n, int k){
-  int i=0,j;
-  int flg=1;
-  if(k==0)
-    return -1;
-
-  for(j=0;j<k;j++){ //each previous col
-    i=0;flg=1;
-    while(i<n){
-      if(mat[i][j]!=mat[i][k]){
-	flg=0;
-	break;
-      }
-      i++;
-    }
-    if(flg)
-      return j;
-  }
-  return -1;
-}
-
-//return total unique columns
-int repcolsall(int **mat, int n, int m, int *pat){
-  int k, tot=1;
-  pat[0]=-1;
-  for(k=1;k<m;k++){// keep the first column
-    if((pat[k]=repcol(mat, n, k))==-1)
-      tot++;
-  }
-  return tot;
-}
-
-// remove repeated columns from a matrix
-// Keep only first instance
-int **redmat1(int **mat, int n, int m, int *m1, int *pat){
-  int **tmp;
-  int i,j,tot=0;
-
-  (*m1)=repcolsall(mat,n,m,pat);
-
-  tmp=imatrix(0, n-1, 0, (*m1)-1);
-  for(i=0;i<m;i++){//column
-    if(pat[i]==-1){//keep
-      for(j=0;j<n;j++)//row
-	tmp[j][tot]=mat[j][i];
-      tot++;
-    }
-  }
-  return tmp;
-}
 
 
 
@@ -2345,7 +2226,7 @@ int mats_compat(int **imat1, int **imat2, int n, int m, int quick, int debug){
 }
 
 
-// Semiconcordance (the MA Jacobian matrix everywhere has the same
+// Semiconcordance (the MA (reduced) Jacobian matrix everywhere has the same
 // rank as the stoichiometric matrix)
 // Sf=stoichiometric matrix; Slf=minus left stoichiometric matrix
 int semiconcord(int **Sf, int **Slf, int n, int m, int debug){
@@ -3087,34 +2968,6 @@ int addoneintstr(int k, int *s, int len1, int ***t)
   return k;
 }
 
-// Is the ordered int list A a subset of the ordered int list B?
-bool AsubsB(int *A, int szA, int *B, int szB){
-  int lastfree=0;
-  int i,j;
-  bool flg;
-
-  if(szA > szB)
-    return 0;
-
-  //  printvec(A,szA);  printvec(B,szB);
-  for(i=0;i<szA;i++){
-    if(lastfree>=szB)// off the end of superset
-      return 0;
-    flg=0;
-    for(j=lastfree;j<szB;j++){
-      if(B[j]>A[i])
-	return 0;
-      if(B[j]==A[i]){
-	lastfree=j+1;
-	flg=1;
-	break;
-      }
-    }
-    if(!flg)
-      return 0;
-  }
-  return 1;
-}
 
 
 // Check if the set subs of size n1 is a siphon
@@ -6150,6 +6003,43 @@ void printsiphons(char *di6, int n, int m){
   return;
 }
 
+//molecularity of CRN
+int molecularity(int **Si, int **Sil, int n, int m){
+  int j;
+  int tmpl,molleft=0;
+  int tmpr,molright=0;
+  for(j=0;j<m;j++){
+    tmpl=colsum(Sil,n,m,j);
+    tmpr=colsum(Si,n,m,j)+tmpl;
+    molleft=max(molleft,tmpl);
+    molright=max(molright,tmpr);
+  }
+  return max(molleft,molright);
+}
+
+//Overloading PN AM input
+int molecularity(int **AM, int n, int m){
+  int **S, **Sl;
+  int minus=1,ret;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  ret=molecularity(S, Sl, n, m);
+  free_imatrix(S, 0, n-1, 0, m-1);
+  free_imatrix(Sl, 0, n-1, 0, m-1);
+  return ret;
+}
+
+//overloading di6 input
+int molecularity(char *di6, int n, int m){
+  int **S, **Sl;
+  int minus=0,ret;
+  di6toSSl(di6, n, m, minus, &S, &Sl);
+  ret=molecularity(S, Sl, n, m);
+  free_imatrix(S, 0, n-1, 0, m-1);
+  free_imatrix(Sl, 0, n-1, 0, m-1);
+  return ret;
+}
+
+
 //Print a report on the molecularity of the network
 void printmolecularity(int **Si, int **Sil, int n, int m){
   int j,totmol=0, totmolleft=0;
@@ -6491,31 +6381,31 @@ int analysereacs(const char inputstr[], int q, bool htmlswitch, bool statswitch)
   char IC1maxpp[250];
   char IC1maxp[250];
   char IC1max[150];
-  char IC1maxstr[300];
-  char IC1maxppstr[500];
-  char IC1maxpstr[500];
+  char IC1maxstr[500];
+  char IC1maxppstr[1000];
+  char IC1maxpstr[1000];
   char IC2[150];
   char IC2max[150];
-  char IC2maxstr[300];
-  char IC1maxIC2maxstr[500];
-  char IC1maxppIC2maxstr[700];
-  char IC1maxpIC2maxstr[700];
-  char failsIC1[200];
-  char IC1[500];
+  char IC2maxstr[800];
+  char IC1maxIC2maxstr[800];
+  char IC1maxppIC2maxstr[800];
+  char IC1maxpIC2maxstr[800];
+  char failsIC1[500];
+  char IC1[200];
   char IC1p[500];
   char IC1pp[500];
   char MAIC2max[500];
   char MAIC1[500];
-  char MAIC1p[500];
-  char MAIC1pp[500];
-  char MAIC1IC2max[500];
-  char MAIC1pIC2max[700];
-  char MAIC1ppIC2max[700];
+  char MAIC1p[800];
+  char MAIC1pp[800];
+  char MAIC1IC2max[800];
+  char MAIC1pIC2max[1000];
+  char MAIC1ppIC2max[1000];
   char notSSD[500];
   char notWSD[500];
-  char notrWSD[500];
-  char notrcmpt[500];
-  char notrcmpt1[500];
+  char notrWSD[600];
+  char notrcmpt[600];
+  char notrcmpt1[700];
   char feinbergdef0[500];
   char panteadef0[500];
   char feinbergdef1[500];
@@ -8535,7 +8425,7 @@ char *CRNamtostr(int **V, int n, int m, int entries, int open){
   int j,k,flg;
   char *str;
   unsigned int maxlen=5*entries+5*m+7*n+10;
-  if(n<=0||m<=0||entries<=0)
+  if(n<=0||m<=0)
     return NULL;
   str=(char *)malloc((size_t) ((maxlen)*sizeof(char)));
   str[0]=0;
@@ -8623,9 +8513,10 @@ char *CRNamtosimpstr(int **V, int n, int m){
 char *di6tosimpstr(char *di6, int n, int m){
   char *str;
   int entries;
-  int **V=di6toCRNam(di6, n, m, &entries);
-  str=CRNamtosimpstr(V, n, m);
-  free_imatrix(V, 0, n+m-1, 0, n+m-1);
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  str=CRNamtosimpstr(AM, n, m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return str;
 }
 
@@ -8858,6 +8749,36 @@ int **CRNamtostoichmat(int **V, int n, int m){
   return stoichmat;
 }
 
+// Take the adjacency matrix of a CRN petri net and return 
+// the left stoichiometric matrix
+int **CRNamtoleftstoichmat(int **V, int n, int m){
+  int j,k;
+  int **leftstoichmat=imatrix(0, n-1, 0, m-1);
+
+  for(k=0;k<m;k++){//each reac
+    for(j=0;j<n;j++)//each species
+      leftstoichmat[j][k]=V[j][k+n];//LHS stoic
+  }
+  return leftstoichmat;
+}
+
+// Take the adjacency matrix of a CRN petri net and return 
+// the left stoichiometric matrix augmented with a row of ones
+int **CRNamtoSil1(int **V, int n, int m){
+  int j,k;
+  int **leftstoichmat1=imatrix(0, n, 0, m-1);
+
+  for(k=0;k<m;k++){//each reac
+    for(j=0;j<n;j++)//each species
+      leftstoichmat1[j][k]=V[j][k+n];//LHS stoic
+  }
+  for(k=0;k<m;k++)
+    leftstoichmat1[n][k]=1;
+
+  return leftstoichmat1;
+}
+
+
 // di6 to adjacency matrix as a vector. 
 // Assumes graph has fewer than 63 vertices
 // Little error checking
@@ -8985,13 +8906,28 @@ int **di6toCRNam1(char *di6, int n, int m, int *totV, int *entries){
 }
 
 
+// Get the number of layers in a CRN in Nauty digraph6 format 
+int numlayers(char *di6, int n, int m){
+  int r1=n+m;
+  int n1;
+  int *out2=digraph6toam(di6, &n1);
+  if(n1%r1!=0){
+    fprintf(stderr, "Wrong dimensions in di6toCRNam1. Exiting. n1=%d, r1 = %d\n", n1, r1);
+    exit(0);
+  }
+  free((char*)out2);
+  return n1/r1;
+}
+
+
 //di6 format to a human-readable reaction string
 char *di6toreacstr1(char *di6, int n, int m, int open){
   char *str;
   int entries;
-  int **V=di6toCRNam(di6, n, m, &entries);
-  str=CRNamtostr(V, n, m, entries, open);
-  free_imatrix(V, 0, n+m-1, 0, n+m-1);
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  str=CRNamtostr(AM, n, m, entries, open);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return str;
 }
 
@@ -9000,9 +8936,9 @@ char *di6toreacstr(char *di6, int n, int m, int open){
   char *str;
   int entries;
   int totV;
-  int **V=di6toCRNam1(di6, n, m, &totV, &entries);
-  str=CRNamtostr(V, n, m, entries, open);
-  free_imatrix(V, 0, n+m-1, 0, n+m-1);
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  str=CRNamtostr(AM, n, m, entries, open);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return str;
 }
 
@@ -9039,7 +8975,8 @@ matrix reacJac(int **AM, int n, int m, int *numv, bool minus){
 matrix reacJac(char *di6, int n, int m, int *numv, bool minus){
   int entries;
   matrix J;
-  int **AM=di6toCRNam(di6, n, m, &entries);
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
   J=reacJac(AM,n,m,numv,minus);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return J;
@@ -9085,7 +9022,8 @@ int **SSltoAM(int **S, int **Sl, int n, int m, bool minus){
 //di6toSSl
 void di6toSSl(char *di6, int n, int m, bool minus, int ***S, int ***Sl){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
   AMtoSSl(AM, n, m, minus, S, Sl);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return;
@@ -9093,7 +9031,10 @@ void di6toSSl(char *di6, int n, int m, bool minus, int ***S, int ***Sl){
 
 //Get the "complex CRN": each complex is the LHS of one reaction with empty RHS
 //To check if CRNs are equivalent up to complexes
-char *cmplxCRN(char *di6, int n, int m, int minlayers, bool sourceonly, int *totcmplx){
+//sourceonly=0: get all complexes
+//sourceonly=1: get only source complexes, one copy of each
+//sourceonly=2: get source complexes with multiplicity
+char *cmplxCRN(char *di6, int n, int m, int minlayers, int sourceonly, int *totcmplx){
   //stoichl is the left stoichiometric matrix; stoichr is the right stoichiometric matrix
   int i,j,k,totcmplx1=0;
   int **stoichlt, **stoichrt; //for transposed matrices
@@ -9104,36 +9045,48 @@ char *cmplxCRN(char *di6, int n, int m, int minlayers, bool sourceonly, int *tot
   int r1, r2, clen, Vlen;
   char *out=NULL;
   bool *V;
-  int **AM=di6toCRNam(di6, n, m, &entries);
-
-  //CRN stoichiometric matrices
-  stoichlt=imatrix(0, m-1, 0, n-1);
-  stoichrt=imatrix(0, m-1, 0, n-1);
-  inittozero(stoichlt,m,n);
-  inittozero(stoichrt,m,n);
-  for(k=0;k<m;k++){//k=reaction number
-    for(j=0;j<n;j++){//j=species number
-      stoichlt[k][j]=AM[j][k+n];
-      stoichrt[k][j]=AM[k+n][j];
-    }
-  }
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  int numl=numlayers(di6, n, m);//maintain the layers
 
   //complexes
-  for(i=0;i<m;i++){
-    totcmplx1=addintstr(totcmplx1, stoichlt[i], n, &cmplxs, &ind1);
-    if(!sourceonly)
-      totcmplx1=addintstr(totcmplx1, stoichrt[i], n, &cmplxs, &ind2);
+  if(sourceonly==2){//sources only with multiplicity
+    totcmplx1=m;
+    Sl=imatrix(0, n-1, 0, totcmplx1-1);Sr=imatrix(0, n-1, 0, totcmplx1-1);
+    inittozero(Sl,n,totcmplx1);inittozero(Sr,n,totcmplx1);
+    for(k=0;k<m;k++){//k=reaction number
+      for(j=0;j<n;j++){//j=species number
+	Sl[j][k]=AM[j][k+n];
+      }
+    }
+   
   }
-  Sl=imatrix(0, n-1, 0, totcmplx1-1);
-  Sr=imatrix(0, n-1, 0, totcmplx1-1);
-  inittozero(Sl,n,totcmplx1);
-  inittozero(Sr,n,totcmplx1);
-  for(k=0;k<totcmplx1;k++){//k=complex number
-    for(j=0;j<n;j++)//j=species number
+  else{//either sources only, or all complexes, one copy each
+    //CRN stoichiometric matrices
+    stoichlt=imatrix(0, m-1, 0, n-1);stoichrt=imatrix(0, m-1, 0, n-1);
+    inittozero(stoichlt,m,n);inittozero(stoichrt,m,n);
+    for(k=0;k<m;k++){//k=reaction number
+      for(j=0;j<n;j++){//j=species number
+	stoichlt[k][j]=AM[j][k+n];
+	stoichrt[k][j]=AM[k+n][j];
+      }
+    }
+    for(i=0;i<m;i++){
+      totcmplx1=addintstr(totcmplx1, stoichlt[i], n, &cmplxs, &ind1);
+      if(!sourceonly)
+	totcmplx1=addintstr(totcmplx1, stoichrt[i], n, &cmplxs, &ind2);
+    }
+    Sl=imatrix(0, n-1, 0, totcmplx1-1);Sr=imatrix(0, n-1, 0, totcmplx1-1);
+    inittozero(Sl,n,totcmplx1);inittozero(Sr,n,totcmplx1);
+    for(k=0;k<totcmplx1;k++){//k=complex number
+      for(j=0;j<n;j++)//j=species number
 	Sl[j][k]=cmplxs[k][j];
+    }
+    free_imatrix(stoichlt,0,m-1,0,n-1);free_imatrix(stoichrt,0,m-1,0,n-1);
+    free_imat(cmplxs,totcmplx1);
   }
 
-  V=CRNPN3(Sl,Sr,n,totcmplx1,minlayers,&l);
+  V=CRNPN3(Sl,Sr,n,totcmplx1,numl,&l);
   if(n+totcmplx1>62/l){
     fprintf(stderr, "ERROR in cmplxCRN: Total CRN size too large. Exiting.\n");
     exit(0);
@@ -9150,19 +9103,17 @@ char *cmplxCRN(char *di6, int n, int m, int minlayers, bool sourceonly, int *tot
 
   amtodig(V,clen,out);
 
-//fprintf(stderr, "here\n");
+  //fprintf(stderr, "here\n");
   free((char *)V);
-  free_imatrix(stoichlt,0,m-1,0,n-1);
-  free_imatrix(stoichrt,0,m-1,0,n-1);
   free_imatrix(Sl,0,n-1,0,totcmplx1-1);	
   free_imatrix(Sr,0,n-1,0,totcmplx1-1);	
-  free_imat(cmplxs,totcmplx1);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
 
 
   (*totcmplx)=totcmplx1;
   return out;
 }
+
 
 
 // The main factor in the mass action Jacobian matrix in the special case:
@@ -9232,7 +9183,6 @@ matrix reacJMAeq(int **Si, int **Sil, int n, int m, int ***Q, matrix *QX, int *n
   int **basisT;
   (*Q)=NULL;
 
-
   basisT=poskerbasis(Si,n,m,&totbasis,rk);
   if(totbasis>1 && reduce){//Equivalent to replacing Q with QD
     reduce_mat(Sil, n, m, 0);//divide each row by its gcd
@@ -9244,7 +9194,10 @@ matrix reacJMAeq(int **Si, int **Sil, int n, int m, int ***Q, matrix *QX, int *n
   matrix xm2(totbasis,1);
   basis=transposemat(basisT,totbasis,m);
 
+  //fprintf(stderr, "rank of Sil = %d\n", matrank(Sil,n,m));//exit(0);
 
+  //printmat(Si,n,m);
+  //printmat(Sil,n,m);
   //printmat(basis, m, totbasis);
   //exit(0);
   //column vectors of unknowns: 1 to n are x_i^{-1} where x_i are the variables
@@ -9332,7 +9285,8 @@ matrix reacJMAeqaa(int **AM, int n, int m, int ***S, int ***Q, matrix *QX, int *
 matrix reacJMAeq(char *di6, int n, int m, int ***Q, matrix *QX, int *numv){
   int entries;
   matrix J;
-  int **AM=di6toCRNam(di6, n, m, &entries);
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
   J=reacJMAeq(AM,n,m,Q,QX,numv);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return J;
@@ -9342,7 +9296,8 @@ matrix reacJMAeq(char *di6, int n, int m, int ***Q, matrix *QX, int *numv){
 matrix reacJMAeq(char *di6, int n, int m, int ***Q, matrix *QX, int *numv, int *rk){
   int entries;
   matrix J;
-  int **AM=di6toCRNam(di6, n, m, &entries);
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
   J=reacJMAeq(AM,n,m,Q,QX,numv,rk);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return J;
@@ -9363,6 +9318,17 @@ void printreacQ(char *di6, int n, int m){
   else
     printmat1(QX,n,n);
   
+  return;
+}
+
+
+//Print stoichiometric and exponent matrices
+void printSSl(char *di6, int n, int m){
+  int **S, **Sl;
+  int minus=0;
+  di6toSSl(di6, n, m, minus, &S, &Sl);
+  printmat1(S,n,m);
+  printmat1(Sl,n,m);
   return;
 }
 
@@ -9419,6 +9385,961 @@ void printreacJ(char *di6, int n, int m){
   return;
 }
 
+//print a surjective matrix W such that W[A|1]=0. 
+void printW(int **Sil, int **S, int n, int m, int debug){
+  int **W=NULL;
+  int tot;
+  int rk;
+  int i,bez=1;
+
+  W=minA1tkerbasis(Sil,n,m,&tot,&rk,&bez,0,debug);
+  fprintf(stderr, "deg = ");
+  for(i=0;i<tot;i++)
+    fprintf(stderr, "%d ", sumpos(W[i],m));
+  fprintf(stderr, "(%d)\n",bez);
+  printmat(W, tot, m);
+  free_imat(W,tot);
+  
+  return;
+}
+
+//overloading: input is PN adjacency matrix, also return the rank
+void printW(int **AM, int n, int m, int debug){
+  bool minus=0;
+  int **S, **Sl;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  printW(Sl,S,n,m,debug);
+  free_imatrix(Sl,0,n-1,0,m-1);
+  free_imatrix(S,0,n-1,0,m-1);
+  return;
+}
+
+//overloading: di6 input
+void printW(char *di6, int n, int m, int debug){
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  char *str=di6toreacstr((char*)di6, n, m, 0);
+  fprintf(stderr, "Network:\n%s", str);
+  free(str);
+  printW(AM,n,m,debug);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return;
+}
+
+
+
+//CylinderScr: output for mathematica: the better version
+//Searching for multiple positive equilibria
+char *CylinderScr(int **Si, int **Sil, int n, int m){
+  int i,i1,j,t,count=0;
+  int numeqs=3;//number of equilibria
+  int timeout=10;//maximum seconds
+  int **basisT;
+  int rk;
+  int totbasis;
+  char *str=(char *)malloc((size_t) (n*m*100*sizeof(char)));//should be safe
+  //printmat(Si,n,m);
+  //printmat(Sil,n,m);
+  basisT=poskerbasis(Si,n,m,&totbasis,&rk);
+
+  sprintf(str, "Print[TimeConstrained[CylindricalDecomposition[");
+  //main part
+  for(t=0;t<numeqs;t++){//eq number
+    for(j=0;j<m;j++){//reaction
+      if(count>0)
+	sprintf(str+strlen(str), " && ");
+      sprintf(str+strlen(str), "k%d",j+1);
+      for(i=0;i<n;i++){
+	if(Sil[i][j])
+	  sprintf(str+strlen(str), "*x%d%d",i+1,t+1);
+      }
+      sprintf(str+strlen(str), " == ");
+      for(i=0;i<totbasis;i++){
+	if(i>0)
+	  sprintf(str+strlen(str), "+%d*a%d%d",basisT[i][j],i+1,t+1);
+	else
+	  sprintf(str+strlen(str), "%d*a%d%d",basisT[i][j],i+1,t+1);
+      }
+      count++;
+    }
+  }
+
+  for(j=0;j<m;j++)//reaction
+    sprintf(str+strlen(str), " && k%d>0",j+1);
+
+  for(j=0;j<n;j++){//species
+    for(t=0;t<numeqs;t++){//eq no
+      sprintf(str+strlen(str), " && x%d%d>0",j+1,t+1);
+    }
+  }
+
+  for(j=0;j<totbasis;j++){//convex coordinates
+    for(t=0;t<numeqs;t++){//eq no
+      sprintf(str+strlen(str), " && a%d%d>0",j+1,t+1);
+    }
+  }
+
+  for(t=0;t<numeqs;t++){//eq no
+    for(i1=t+1;i1<numeqs;i1++){//eq no
+      sprintf(str+strlen(str), " && (");
+      for(j=0;j<n;j++){//species
+	if(j>0)
+	  sprintf(str+strlen(str), " || x%d%d!=x%d%d",j+1,t+1,j+1,i1+1);
+	else
+	  sprintf(str+strlen(str), "x%d%d!=x%d%d",j+1,t+1,j+1,i1+1);
+      }
+      sprintf(str+strlen(str), ")");
+    }
+  }
+
+  sprintf(str+strlen(str), ", {");
+  for(j=0;j<m;j++){//reaction
+    if(j>0)
+      sprintf(str+strlen(str), ", k%d",j+1);
+    else
+      sprintf(str+strlen(str), "k%d",j+1);
+  }
+  for(t=0;t<numeqs;t++){//eq no
+    for(j=0;j<totbasis;j++){//convex coordinates
+      sprintf(str+strlen(str), ", a%d%d",j+1,t+1);
+    }
+  }
+  for(i1=0;i1<numeqs;i1++){//eq no
+    for(j=0;j<n;j++){//species
+      sprintf(str+strlen(str), ", x%d%d",j+1,i1+1);
+    }
+  }
+  sprintf(str+strlen(str), "}],%d,999]]",timeout);
+
+
+  fprintf(stderr, "%s\n\n",str);
+  //exit(0);
+  free(str);
+  free_imat(basisT,totbasis);
+  return NULL;
+  //return str;
+}
+
+//overloading: input is PN adjacency matrix, also return the rank
+char *CylinderScr(int **AM, int n, int m){
+  bool minus=0;
+  char *str;
+  int **S, **Sl;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  str=CylinderScr(S, Sl, n, m);
+  free_imatrix(Sl,0,n-1,0,m-1);
+  free_imatrix(S,0,n-1,0,m-1);
+  return str;
+}
+
+//overloading: di6 input
+char *CylinderScr(char *di6, int n, int m){
+  char *str;
+  matrix J;
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  str=CylinderScr(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return str;
+}
+
+
+
+//For nondegenerate (n,n+2,n) CRNs
+//Searching for numeq positive equilibria
+char *multinn2nscr(int **Si, int **Sil, int n, int m, int numeq){
+  int i,j,count=0;
+  int timeout=10;//maximum seconds
+  int **basisT;
+  int rk;
+  int totbasis;
+  char *str=(char *)malloc((size_t) (n*m*100*sizeof(char)));//should be safe
+  int W[m];
+  int **Sil1=imatrix(0, n, 0, m-1);
+  int degree=0;
+
+  if(m-n!=2){
+    fprintf(stderr, "ERROR in \"multinn2nscr\": networks must have 2 more reactions than species.\n");
+    exit(0);
+  }
+
+  //Augment with a row of ones
+  for(i=0;i<n;i++){
+    for(j=0;j<m;j++){
+      Sil1[i][j]=Sil[i][j];
+    }
+  }
+  for(j=0;j<m;j++){
+    Sil1[n][j]=1;
+  }
+  
+  //printmat(Si,n,m);
+  //printmat(Sil1,n+1,m);
+  basisT=poskerbasis(Si,n,m,&totbasis,&rk);
+  if(rk!=n){
+    fprintf(stderr, "ERROR in \"multinn2nscr\": networks must have rank equal to the number of species.\n");
+    exit(0);
+  }
+  if(totbasis!=2){
+    fprintf(stderr, "ERROR in \"multinn2nscr\": network must be dynamically nontrivial.\n");
+    exit(0);
+  }
+  intkervec(Sil1, n+1, m, W,1);
+
+  for(j=0;j<m;j++){
+    if(W[j]>0)
+      degree+=W[j];
+  }
+  //printmat(basisT,totbasis,m);
+
+  //printvec(W,m);
+  //exit(0);
+
+
+  sprintf(str, "Print[\"degree = %d\"]\n",degree);
+
+  if(degree>=numeq){//only bother if polynomial is of sufficient degree
+    sprintf(str+strlen(str), "f[x_]:=");
+    count=0;
+    for(i=0;i<m;i++){
+      if(W[i]>0){
+	if(count)
+	  sprintf(str+strlen(str), "*");
+	if(W[i]==1)
+	  sprintf(str+strlen(str), "(%d*x + %d*(1-x))",basisT[0][i],basisT[1][i]);
+	else
+	  sprintf(str+strlen(str), "(%d*x + %d*(1-x))^%d",basisT[0][i],basisT[1][i],W[i]);
+	count++;
+      }
+    }
+    sprintf(str+strlen(str), "-T*");
+    count=0;
+    for(i=0;i<m;i++){
+      if(W[i]<0){
+	if(count)
+	  sprintf(str+strlen(str), "*");
+	if(W[i]==-1)
+	  sprintf(str+strlen(str), "(%d*x + %d*(1-x))",basisT[0][i],basisT[1][i]);
+	else
+	  sprintf(str+strlen(str), "(%d*x + %d*(1-x))^%d",basisT[0][i],basisT[1][i],-W[i]);
+	count++;
+      }
+    }
+
+
+    //sprintf(str+strlen(str), "\nPrint[TimeConstrained[FindInstance[f[x1]==0&&f[x2]==0&&f[x3]==0&&T>0&&0<x1<x2<x3<1,{T,x1,x2,x3}],%d,999]]",timeout);
+
+    sprintf(str+strlen(str), "\nPrint[TimeConstrained[FindInstance[");
+    for(i=0;i<numeq;i++){
+      if(i>0)
+	sprintf(str+strlen(str), " && ");
+      sprintf(str+strlen(str), " f[x%d]==0",i+1);
+    }
+    sprintf(str+strlen(str), " && T>0 && 0 < ");
+    for(i=0;i<numeq;i++)
+      sprintf(str+strlen(str), "x%d < ",i+1);
+
+    sprintf(str+strlen(str), "1,{T");
+    for(i=0;i<numeq;i++)
+      sprintf(str+strlen(str), ", x%d",i+1);
+
+    sprintf(str+strlen(str), "}],%d,999]]",timeout);
+
+  }
+
+
+  fprintf(stderr, "%s\n\n",str);
+  //exit(0);
+  free(str);
+  free_imat(basisT,totbasis);
+  free_imatrix(Sil1,0, n, 0, m-1);
+  return NULL;
+  //return str;
+}
+
+
+//overloading: input is PN adjacency matrix, also return the rank
+char *multinn2nscr(int **AM, int n, int m, int numeq){
+  bool minus=0;
+  char *str;
+  int **S, **Sl;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  str=multinn2nscr(S, Sl, n, m, numeq);
+  free_imatrix(Sl,0,n-1,0,m-1);
+  free_imatrix(S,0,n-1,0,m-1);
+  return str;
+}
+
+//overloading: di6 input
+char *multinn2nscr(char *di6, int n, int m, int numeq){
+  char *str;
+  matrix J;
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  str=multinn2nscr(AM,n,m, numeq);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return str;
+}
+
+
+//For nondegenerate (n,n+3,n) CRNs
+//Searching for numeq positive equilibria
+//Assume dynamically nontrivial
+char *multinn3nscr(int **Si, int **Sil, int n, int m, int numeq){
+  int i,j,count=0;
+  int timeout=10;//maximum seconds
+  int **basisT;
+  int rk, rk1;
+  int totbasis;
+  char *str=(char *)malloc((size_t) (n*m*100*sizeof(char)));//should be safe
+  int **W;
+  int totW;
+  int **Sil1=imatrix(0, n, 0, m-1);
+  int debug=0;
+  int deg;
+
+  if(m-n!=3){
+    fprintf(stderr, "ERROR in \"multinn3nscr\": networks must have 3 more reactions than species.\n");
+    exit(0);
+  }
+
+  //Augment with a row of ones
+  for(i=0;i<n;i++){
+    for(j=0;j<m;j++){
+      Sil1[i][j]=Sil[i][j];
+    }
+  }
+  for(j=0;j<m;j++){
+    Sil1[n][j]=1;
+  }
+  
+  //printmat(Si,n,m);
+  //printmat(Sil1,n+1,m);
+  basisT=poskerbasis(Si,n,m,&totbasis,&rk);
+  if(rk!=n){
+    fprintf(stderr, "ERROR in \"multinn3nscr\": networks must have rank equal to the number of species.\n");
+    exit(0);
+  }
+  if(totbasis<3){
+    fprintf(stderr, "ERROR in \"multinn3nscr\": ker_+(Gamma) should have at least three nonnegative extremal vectors.\n");
+    exit(0);
+  }
+
+  W=minA1tkerbasis(Sil, n, m, &totW, &rk1, &deg, 0, debug);
+
+  //sprintf(str, "Print[\"degree = %d\"]\n",degree);
+
+  for(j=0;j<2;j++){
+    sprintf(str+strlen(str), "f%d[x_,y_]:=",j+1);
+    count=0;
+    for(i=0;i<m;i++){
+      if(W[j][i]>0){
+	if(count)
+	  sprintf(str+strlen(str), "*");
+	if(W[j][i]==1)
+	  sprintf(str+strlen(str), "(%d*x + %d*y + %d*(1-x-y))",basisT[0][i],basisT[1][i],basisT[2][i]);
+	else
+	  sprintf(str+strlen(str), "(%d*x + %d*y + %d*(1-x-y))^%d",basisT[0][i],basisT[1][i],basisT[2][i],W[j][i]);
+	count++;
+      }
+    }
+    sprintf(str+strlen(str), "-T%d*",j+1);
+    count=0;
+    for(i=0;i<m;i++){
+      if(W[j][i]<0){
+	if(count)
+	  sprintf(str+strlen(str), "*");
+	if(W[j][i]==-1)
+	  sprintf(str+strlen(str), "(%d*x + %d*y + %d*(1-x-y))",basisT[0][i],basisT[1][i],basisT[2][i]);
+	else
+	  sprintf(str+strlen(str), "(%d*x + %d*y + %d*(1-x-y))^%d",basisT[0][i],basisT[1][i],basisT[2][i],-W[j][i]);
+	count++;
+      }
+    }
+    sprintf(str+strlen(str), "\n");
+  }
+
+
+    //sprintf(str+strlen(str), "\nPrint[TimeConstrained[FindInstance[f[x1]==0&&f[x2]==0&&f[x3]==0&&T>0&&0<x1<x2<x3<1,{T,x1,x2,x3}],%d,999]]",timeout);
+
+    sprintf(str+strlen(str), "\nPrint[TimeConstrained[FindInstance[");
+    for(i=0;i<numeq;i++){
+      if(i>0)
+	sprintf(str+strlen(str), " && ");
+      sprintf(str+strlen(str), " f1[x%d,y%d]==0 && f2[x%d,y%d]==0",i+1,i+1,i+1,i+1);
+    }
+    sprintf(str+strlen(str), " && T1>0 && T2>0");
+    for(i=0;i<m;i++){
+      for(j=0;j<numeq;j++){
+	sprintf(str+strlen(str), "&& %d*x%d + %d*y%d + %d*(1-x%d-y%d)>0",basisT[0][i],j+1,basisT[1][i],j+1,basisT[2][i],j+1,j+1);
+      }
+    }
+    for(i=0;i<numeq-1;i++){
+      for(j=i+1;j<numeq;j++){
+	sprintf(str+strlen(str), "&& (x%d!=x%d || y%d!=y%d)",i+1,j+1,i+1,j+1);
+      }
+    }
+    //add not equal
+    sprintf(str+strlen(str), ",{T1, T2");
+    for(i=0;i<numeq;i++)
+      sprintf(str+strlen(str), ", x%d, y%d",i+1, i+1);
+
+    sprintf(str+strlen(str), "}],%d,999]]",timeout);
+
+
+
+  fprintf(stderr, "%s\n\n",str);
+  //exit(0);
+  free(str);
+  free_imat(basisT,totbasis);
+  free_imat(W, totW);
+  free_imatrix(Sil1,0, n, 0, m-1);
+  return NULL;
+  //return str;
+}
+
+//overloading: input is PN adjacency matrix, also return the rank
+char *multinn3nscr(int **AM, int n, int m, int numeq){
+  bool minus=0;
+  char *str;
+  int **S, **Sl;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  str=multinn3nscr(S, Sl, n, m, numeq);
+  free_imatrix(Sl,0,n-1,0,m-1);
+  free_imatrix(S,0,n-1,0,m-1);
+  return str;
+}
+
+//overloading: di6 input
+char *multinn3nscr(char *di6, int n, int m, int numeq){
+  char *str;
+  matrix J;
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  str=multinn3nscr(AM,n,m, numeq);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return str;
+}
+
+
+//multi342scr: Just for potentially nondegenerate (3,4,2)
+//trial
+char *multi342scr(int **Si, int **Sil, int n, int m){
+  int i,j;
+  int **basisT;
+  int rk;
+  int totbasis;
+  char *str=(char *)malloc((size_t) (n*m*100*sizeof(char)));//should be safe
+  int W[n];
+  int **Sil1=imatrix(0, n, 0, m-1);
+  int **Sil1t;
+  int **Sit;
+  possymbol x("x");
+  char str1[5];
+  ex eq;
+  int Tpos;
+
+  if(n!=3||m!=4){
+    fprintf(stderr, "ERROR in \"multi342scr\": networks must have 3 species and four reactions.\n");
+    exit(0);
+  }
+
+  //Augment with a row of ones
+  for(i=0;i<n;i++){
+    for(j=0;j<m;j++){
+      Sil1[i][j]=Sil[i][j];
+    }
+  }
+  for(j=0;j<m;j++){
+    Sil1[n][j]=1;
+  }
+  Sil1t=transposemat(Sil1,n+1,m);
+
+  
+  //printmat(Si,n,m);
+  //printmat(Sil1t,m,n+1);
+  if(matrank(Sil1t,m,n+1)==4){
+    matrix G=imattoexmat(Sil1t,m,n+1);
+    matrix G1=inverse(G);
+    cout << G1 << endl;
+  
+    basisT=poskerbasis(Si,n,m,&totbasis,&rk);
+    if(rk!=2){
+      fprintf(stderr, "ERROR in \"multi342scr\": networks must have rank 2.\n");
+      exit(0);
+    }
+    //printmat(basisT,totbasis,m); 
+    Sit=transposemat(Si,n,m);
+    intkervec(Sit, m, n, W,1);
+    //printvec(W,n);
+    matrix h(1,m);
+    matrix hh(1,n);
+    for(j=0;j<m;j++)
+      h(0,j) = expand(basisT[0][j]*x+basisT[1][j]*(1-x));
+    //cout << h << endl;
+    for(j=0;j<n;j++){
+      hh(0,j) = 1;
+      for(i=0;i<m;i++){
+	hh(0,j)*=pow(h(0,i),G1(j,i));
+	//cout << h(0,i) << " " << G1(i,j) << " " << hh(0,j) << endl;
+      }
+      //expand(hh(0,j));
+    }
+    //cout << hh << endl;
+    eq=0;Tpos=1;
+    for(i=0;i<n;i++){
+      if(W[i]!=0){
+	if(W[i]<0)
+	  Tpos=0;
+	sprintf(str1, "t%d", i);
+	eq+=W[i]*get_possymbol(str1)*hh(0,i);
+      }
+    }
+    //expand(eq);
+    fprintf(stderr, "f[x_] := ");
+    for(i=0;i<n;i++){
+      if(W[i]!=0){
+	if(W[i]<0)
+	  Tpos=0;
+	fprintf(stderr, "%s", W[i]>0?"+":"-");
+	if(abs(W[i])!=1)
+	  fprintf(stderr, "%d*", abs(W[i]));
+	fprintf(stderr, "t%d", i);
+	for(j=0;j<m;j++){
+	  if(G1(i,j)!=0 && h(0,j)!=1){
+	    if(G1(i,j)==1)
+	      cerr << "*(" << h(0,j) << ")";
+	    else
+	      cerr << "*(" << h(0,j) << ")^(" << G1(i,j) << ")";
+	  }
+	}
+	
+      }
+    }
+    cerr << endl;
+    
+    //cerr << eq << endl;
+    fprintf(stderr, "Print[TimeConstrained[FindInstance[f[x1]==T && f[x2]==T && f[x3]==T && f[x4]==T &&  0 < x1 < x2 < x3 < x4 < 1 &&t0>0 && t1>0 && t2>0 && t3>0 %s, {T,x1,x2,x3,x4,t0,t1,t2,t3}],10,999]]\n", Tpos>0?"&& T>0":"");
+
+    free_imatrix(Sit,0, m-1, 0, n-1);
+    free_imat(basisT,totbasis);
+  }
+
+  free(str);
+  free_imatrix(Sil1,0, n, 0, m-1);
+  free_imatrix(Sil1t,0, m-1, 0, n);
+  return NULL;
+  //return str;
+}
+
+//overloading: input is PN adjacency matrix, also return the rank
+char *multi342scr(int **AM, int n, int m){
+  bool minus=0;
+  char *str;
+  int **S, **Sl;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  str=multi342scr(S, Sl, n, m);
+  free_imatrix(Sl,0,n-1,0,m-1);
+  free_imatrix(S,0,n-1,0,m-1);
+  return str;
+}
+
+//overloading: di6 input
+char *multi342scr(char *di6, int n, int m){
+  char *str;
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  str=multi342scr(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return str;
+}
+
+//print vector in kernel of [A|1], which is assumed to be 1-D
+void printA1kervec(int **Si, int **Sil, int n, int m){
+  int i,j;
+  int W[n+1];
+  int **Sil1t=imatrix(0, m-1, 0, n);
+
+  //Augment with a column of ones
+  for(i=0;i<n;i++){
+    for(j=0;j<m;j++){
+      Sil1t[j][i]=Sil[i][j];
+    }
+  }
+  for(j=0;j<m;j++){
+    Sil1t[j][n]=1;
+  }
+  if(matrank(Sil1t,m,n+1)!=n){
+    fprintf(stderr, "ERROR in \"printA1kervec\": [A|1] must have rank n.\n");
+  }
+  intkervec(Sil1t, m, n+1, W,1);
+
+  printvec(W,n+1);
+  free_imatrix(Sil1t,0, m-1, 0, n);
+  return;
+}
+
+//overloading: input is PN adjacency matrix, also return the rank
+void printA1kervec(int **AM, int n, int m){
+  bool minus=0;
+  int **S, **Sl;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  printA1kervec(S, Sl, n, m);
+  free_imatrix(Sl,0,n-1,0,m-1);
+  free_imatrix(S,0,n-1,0,m-1);
+  return;
+}
+
+//overloading: di6 input
+void printA1kervec(char *di6, int n, int m){
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  char *str=di6toreacstr((char*)di6, n, m, 0);
+  fprintf(stderr, "Network:\n%s", str);
+  free(str);
+  printA1kervec(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return;
+}
+
+
+
+//solvability condition assuming a single polynomial: e.g. (n,n+2,n) CRNs
+//not identically degenerate CRNs. 
+int printsolvability(int **Si, int **Sil, int n, int m, int debug){
+  int degree=0;
+  int tot;
+  int rk;
+  int **W=minA1tkerbasis(Sil,n,m,&tot,&rk,&degree,0,debug);
+  printmat(W,tot,m);
+  fprintf(stderr, "degree = %d\n",degree);
+  free_imat(W,tot);
+  return degree;
+}
+
+
+//overloading: input is PN adjacency matrix, also return the rank
+int printsolvability(int **AM, int n, int m, int debug){
+  bool minus=0,degree;
+  int **S, **Sl;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  degree=printsolvability(S, Sl, n, m, debug);
+  free_imatrix(Sl,0,n-1,0,m-1);
+  free_imatrix(S,0,n-1,0,m-1);
+  return degree;
+}
+
+//overloading: di6 input
+int printsolvability(char *di6, int n, int m, int debug){
+  int entries,degree,totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  char *str=di6toreacstr((char*)di6, n, m, 0);
+  fprintf(stderr, "Network:\n%s", str);
+  free(str);
+  degree=printsolvability(AM,n,m,debug);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return degree;
+}
+
+
+//Bezout degree of solvability condition (assuming square)
+//not identically degenerate CRNs. 
+int solvabilitydegree(int **Si, int **Sil, int n, int m){
+  int degree=0;
+  int debug=0;
+  int tot;
+  int rk;
+  int **W=minA1tkerbasis(Sil,n,m,&tot,&rk,&degree,0,debug);
+  free_imat(W,tot);
+  return degree;
+}
+
+//overloading: input is PN adjacency matrix, also return the rank
+int solvabilitydegree(int **AM, int n, int m){
+  bool minus=0;
+  int **S, **Sl;
+  int degree;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  degree=solvabilitydegree(S, Sl, n, m);
+  free_imatrix(Sl,0,n-1,0,m-1);
+  free_imatrix(S,0,n-1,0,m-1);
+  return degree;
+}
+
+//overloading: di6 input
+int solvabilitydegree(char *di6, int n, int m){
+  int entries;
+  int totV;
+  int degree;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  //char *str=di6toreacstr((char*)di6, n, m, 0);
+  //fprintf(stderr, "Network:\n%s", str);
+  //free(str);
+  degree=solvabilitydegree(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return degree;
+}
+
+//Mixed volume of the Q-polynomials, assuming r = m-1
+void printQmixed(int **Si, int **Sil, int n, int m){
+  int i,degree=0;
+  int debug=0;
+  int tot,rk,V;
+  int **Q=minA1tkerbasis(Sil,n,m,&tot,&rk,&degree,1,debug);
+  //replace last col with zero col (constant on RHS of each equation)
+  for(i=0;i<tot;i++)
+    Q[i][n]=0;
+  fprintf(stderr, "Q^t (last col replaced with zeros):\n");
+  printmat(Q,tot,n+1);
+  V=PolytopeVol(NULL,Q,tot,n+1,debug);
+  fprintf(stderr, "Mixed Vol = %d\n", V);
+  free_imat(Q,tot);
+  return;
+}
+
+//overloading: input is PN adjacency matrix, also return the rank
+void printQmixed(int **AM, int n, int m){
+  bool minus=0;
+  int **S, **Sl;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  printQmixed(S, Sl, n, m);
+  free_imatrix(Sl,0,n-1,0,m-1);
+  free_imatrix(S,0,n-1,0,m-1);
+  return;
+}
+
+//overloading: di6 input
+void printQmixed(char *di6, int n, int m){
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  //char *str=di6toreacstr((char*)di6, n, m, 0);
+  //fprintf(stderr, "Network:\n%s", str);
+  //free(str);
+  printQmixed(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return;
+}
+
+//Mixed volume of the Q-polynomials, assuming r = m-1
+int Qmixed(int **Si, int **Sil, int n, int m){
+  int i,degree=0;
+  int debug=0;
+  int tot,rk,V;
+  int **Q=minA1tkerbasis(Sil,n,m,&tot,&rk,&degree,1,debug);
+  for(i=0;i<tot;i++)//replace last col with zeros (constant on RHS)
+    Q[i][n]=0;
+  V=PolytopeVol(NULL,Q,tot,n+1,debug);
+  free_imat(Q,tot);
+  return V;
+}
+
+//overloading: input is PN adjacency matrix, also return the rank
+int Qmixed(int **AM, int n, int m){
+  bool minus=0;
+  int **S, **Sl;
+  int V;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  V=Qmixed(S, Sl, n, m);
+  free_imatrix(Sl,0,n-1,0,m-1);
+  free_imatrix(S,0,n-1,0,m-1);
+  return V;
+}
+
+//overloading: di6 input
+int Qmixed(char *di6, int n, int m){
+  int entries;
+  int totV;
+  int V;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  //char *str=di6toreacstr((char*)di6, n, m, 0);
+  //fprintf(stderr, "Network:\n%s", str);
+  //free(str);
+  V=Qmixed(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return V;
+}
+
+
+//print the inverse of [A|1] assuming square and invertible
+void printA1inv(int **Si, int **Sil, int n, int m){
+  int i,j;
+  int **Sil1=imatrix(0, n, 0, m-1);
+  int **Sil1t;
+
+  if(n!=m-1){
+    fprintf(stderr, "ERROR in \"printA1inv\": networks must have one more reaction than species.\n");
+    exit(0);
+  }
+
+  //Augment with a row of ones
+  for(i=0;i<n;i++){
+    for(j=0;j<m;j++){
+      Sil1[i][j]=Sil[i][j];
+    }
+  }
+  for(j=0;j<m;j++){
+    Sil1[n][j]=1;
+  }
+  Sil1t=transposemat(Sil1,n+1,m);
+
+  
+  //printmat(Si,n,m);
+  //printmat(Sil1t,m,n+1);
+  if(matrank(Sil1t,m,n+1)!=m){
+    fprintf(stderr, "ERROR in \"printA1inv\": [A|1] must have full rank.\n");
+  }
+    
+  matrix G=imattoexmat(Sil1t,m,n+1);
+  matrix G1=inverse(G);
+  cerr << G1 << endl;
+  
+  free_imatrix(Sil1,0, n, 0, m-1);
+  free_imatrix(Sil1t,0, m-1, 0, n);
+  return;
+  //return str;
+}
+
+//overloading: input is PN adjacency matrix, also return the rank
+void printA1inv(int **AM, int n, int m){
+  bool minus=0;
+  int **S, **Sl;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  printA1inv(S, Sl, n, m);
+  free_imatrix(Sl,0,n-1,0,m-1);
+  free_imatrix(S,0,n-1,0,m-1);
+  return;
+}
+
+//overloading: di6 input
+void printA1inv(char *di6, int n, int m){
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  char *str=di6toreacstr((char*)di6, n, m, 0);
+  fprintf(stderr, "Network:\n%s", str);
+  free(str);
+  printA1inv(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return;
+}
+
+
+//CylinderScr: output for mathematica
+//Searching for multiple positive equilibria
+char *CylinderScr3(int **Si, int **Sil, int n, int m){
+  int i,i1,j,t,count=0;
+  int numeqs=3;//number of equilibria
+  int timeout=10;//maximum seconds
+  char *str=(char *)malloc((size_t) (n*m*100*sizeof(char)));//should be safe
+  //printmat(Si,n,m);
+  //printmat(Sil,n,m);
+
+  sprintf(str, "Print[TimeConstrained[CylindricalDecomposition[");
+  //main part
+  for(t=0;t<numeqs;t++){//eq number
+    for(i=0;i<n;i++){//species
+      if(count>0)
+	sprintf(str+strlen(str), " && ");
+      for(j=0;j<m;j++){//reaction
+	if(Si[i][j]!=0){
+	  if(Si[i][j]>0&&j>0)
+	    sprintf(str+strlen(str), "+");
+	  if(Si[i][j]==1)
+	    sprintf(str+strlen(str), "k%d",j+1);
+	  else if(Si[i][j]==-1)
+	    sprintf(str+strlen(str), "-k%d",j+1);
+	  else
+	    sprintf(str+strlen(str), "%d*k%d",Si[i][j],j+1);
+	  for(i1=0;i1<n;i1++){
+	    if(Sil[i1][j]>0){
+	      if(Sil[i1][j]>1)
+		sprintf(str+strlen(str), "*x%d%d^%d",i1+1,t+1,Sil[i1][j]);
+	      else
+		sprintf(str+strlen(str), "*x%d%d",i1+1,t+1);
+
+	    }
+	  }
+	}
+      }
+      sprintf(str+strlen(str), " == 0");
+      count++;
+    }
+  }
+  for(j=0;j<m;j++)//reaction
+    sprintf(str+strlen(str), " && k%d>0",j+1);
+
+  for(j=0;j<n;j++){//species
+    for(t=0;t<numeqs;t++){//eq no
+      sprintf(str+strlen(str), " && x%d%d>0",j+1,t+1);
+    }
+  }
+
+  for(t=0;t<numeqs;t++){//eq no
+    for(i1=t+1;i1<numeqs;i1++){//eq no
+      sprintf(str+strlen(str), " && (");
+      for(j=0;j<n;j++){//species
+	if(j>0)
+	  sprintf(str+strlen(str), " || x%d%d!=x%d%d",j+1,t+1,j+1,i1+1);
+	else
+	  sprintf(str+strlen(str), "x%d%d!=x%d%d",j+1,t+1,j+1,i1+1);
+      }
+      sprintf(str+strlen(str), ")");
+    }
+  }
+
+  sprintf(str+strlen(str), ", {");
+  for(j=0;j<m;j++){//reaction
+    if(j>0)
+      sprintf(str+strlen(str), ", k%d",j+1);
+    else
+      sprintf(str+strlen(str), "k%d",j+1);
+  }
+  for(i1=0;i1<numeqs;i1++){//eq no
+    for(j=0;j<n;j++){//species
+      sprintf(str+strlen(str), ", x%d%d",j+1,i1+1);
+    }
+  }
+  sprintf(str+strlen(str), "}],%d,999]]",timeout);
+
+
+  fprintf(stderr, "%s\n",str);
+  //exit(0);
+  free(str);
+  return NULL;
+  //return str;
+}
+
+//overloading: input is PN adjacency matrix, also return the rank
+char *CylinderScr3(int **AM, int n, int m){
+  bool minus=0;
+  char *str;
+  int **S, **Sl;
+  AMtoSSl(AM, n, m, minus, &S, &Sl);
+  str=CylinderScr3(S, Sl, n, m);
+  free_imatrix(Sl,0,n-1,0,m-1);
+  free_imatrix(S,0,n-1,0,m-1);
+  return str;
+}
+
+//overloading: di6 input
+char *CylinderScr3(char *di6, int n, int m){
+  char *str;
+  matrix J;
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  str=CylinderScr3(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return str;
+}
+
 
 // Take a digraph Nauty digraph6 format (two layers) and 
 // convert to a sign pattern 
@@ -9464,7 +10385,8 @@ int **di6tosignpat(char *di6, int n){
 char *di6toSauro(char *di6, int n, int m){
   int i,j,k;
   int entries;
-  int **V=di6toCRNam(di6, n, m, &entries);
+  int totV;
+  int **V=di6toCRNam1(di6, n, m, &totV, &entries);
   char *str;
 
   str=(char *)malloc((size_t) ((8*entries+20)*sizeof(char)));
@@ -9554,7 +10476,8 @@ unsigned long di6toSaurofile(const char *infile, const char *outfile, int n, int
 void di6toSauro2(char *di6, int n, int m, char *outstr){
   int i,j,k;
   int entries;
-  int **V=di6toCRNam(di6, n, m, &entries);
+  int totV;
+  int **V=di6toCRNam1(di6, n, m, &totV, &entries);
   char tmpstr[30];
 
   sprintf(tmpstr, "%d %d ", m, n);
@@ -9586,7 +10509,8 @@ void di6toSauro2(char *di6, int n, int m, char *outstr){
 void di6toSauro1(FILE *fd, char *di6, int n, int m){
   int i,j,k;
   int entries;
-  int **V=di6toCRNam(di6, n, m, &entries);
+  int totV;
+  int **V=di6toCRNam1(di6, n, m, &totV, &entries);
 
   fprintf(fd, "%d %d ", m, n);
 
@@ -9707,7 +10631,8 @@ char *printPNgraph(int **AM, int n, int m, unsigned long labl){
 char *printPNgraph(char *di6, int n, int m, unsigned long labl){
   int entries;
   char *str;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
   str=printPNgraph(AM, n, m, labl);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return str;
@@ -9793,14 +10718,67 @@ int checkrank(int **AM, int n, int m){
 }
 
 
-// Overloading: return the rank of a CRN in di6 format
+
+//l layers. Overloading: return the rank of a CRN in di6 format
 int checkrank(char *di6, int n, int m){
+  int entries,ret;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  ret=checkrank(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+//2 layers, deprecated
+int checkrankold(char *di6, int n, int m){
   int entries,ret;
   int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
   ret=checkrank(AM,n,m);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
 }
+
+
+// return the rank of the reactant matrix from CRN adjacency matrix
+int checkrankleft(int **AM, int n, int m){
+  int ret;
+  int **S=CRNamtoleftstoichmat(AM,n,m);//left stoichiometric matrix
+  ret=checkrankS(S,n,m);
+  free_imatrix(S, 0, n-1, 0, m-1);
+  return ret;
+}
+
+// Overloading: return the rank the reactant matrix of a CRN in di6 format
+int checkrankleft(char *di6, int n, int m){
+  int entries,ret;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  ret=checkrankleft(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+
+// return the rank of the reactant matrix from CRN adjacency matrix
+int checkrankSil1(int **AM, int n, int m){
+  int ret;
+  int **S=CRNamtoSil1(AM,n,m);//left stoichiometric matrix with added row of ones
+  ret=checkrankS(S,n+1,m);
+  free_imatrix(S, 0, n, 0, m-1);
+  return ret;
+}
+
+// Overloading: return the rank the reactant matrix of a CRN in di6 format
+int checkrankSil1(char *di6, int n, int m){
+  int entries,ret;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  ret=checkrankSil1(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+
 
 //depth first seach on the Petri Net graph, stored as
 //left and right stoich matrices. Recursive.
@@ -9910,8 +10888,18 @@ bool DN(int **AM, int n, int m){
   return 1-ret;
 }
 
-//overloading
+//l layers
 bool DN(char *di6, int n, int m){
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  bool ret=DN(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+//2 layers, deprecated
+bool DNold(char *di6, int n, int m){
   int entries;
   int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
   bool ret=DN(AM,n,m);
@@ -9940,6 +10928,39 @@ bool bdclass(char *di6, int n, int m, int debug){
   int entries;
   int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
   bool ret=bdclass(AM,n,m,debug);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+// Homogeneous: i.e., 1^t\Gamma = 0
+bool homogen(int **AM, int n, int m, int debug){
+  int i,j,tot;
+  int **S=imatrix(0,n-1,0,m-1);//stoich matrix
+  if(debug){fprintf(stderr, "\n###Entering homogen: checking if the stoichiometric subspace has a vector of ones in its left kernel.\n");}
+  for(i=0;i<m;i++){// reactions
+    for(j=0;j<n;j++){// species
+      S[j][i]=AM[i+n][j]-AM[j][i+n];
+    }
+  }
+  for(i=0;i<m;i++){// reactions
+    tot=0;
+    for(j=0;j<n;j++)// species
+      tot+=S[j][i];
+    if(tot){//not homogeneous
+      free_imatrix(S, 0, n-1, 0, m-1);
+      if(debug){fprintf(stderr, "Result: not homogeneous.\n");}
+      return 0;
+    }
+  }
+  free_imatrix(S, 0, n-1, 0, m-1);
+  if(debug){fprintf(stderr, "Result: homogeneous.\n");}
+  return 1;
+}
+
+bool homogen(char *di6, int n, int m, int debug){
+  int entries;
+  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  bool ret=homogen(AM,n,m,debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
 }
@@ -10273,29 +11294,38 @@ int WRdef0(char *di6, int n, int m){
   return ret;
 }
 
-// genuine if there are no trivial species
+// genuine if there are no unused species
 // returns 1 if every species participates in some reaction
 // otherwise returns 0
-// modified from the original CRN_triv_spec
 
 bool genuine(int **AM, int n, int m){
   int flag,i,j;
   for(j=0;j<n;j++){// each species
-    flag=0;//potentially trivial
+    flag=0;//potentially an unused species
     for(i=0;i<m;i++){// reactions
-      if(AM[i+n][j] || AM[j][i+n]){//not trivial
+      if(AM[i+n][j] || AM[j][i+n]){//not unused
 	flag=1;
 	break;
       }
     }
-    if(!flag)//trivial species
+    if(!flag)//unused species
       return 0;
   }
   return 1;//genuine
 }
 
-//overloading
+//l layers
 bool genuine(char *di6, int n, int m){
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  bool ret=genuine(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+//2 layers only
+bool genuineold(char *di6, int n, int m){
   int entries;
   int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
   bool ret=genuine(AM,n,m);
@@ -10303,9 +11333,62 @@ bool genuine(char *di6, int n, int m){
   return ret;
 }
 
+
+
+// check if every species has some net production or consumption in some reac
+// returns 0 if this is the case, otherwise returns 1
+
+
+bool triv_spec(int **AM, int n, int m){
+  int flag,i,j;
+  for(j=0;j<n;j++){// each species
+    flag=0;//potentially a trivial species
+    for(i=0;i<m;i++){// reactions
+      if(AM[i+n][j]!=AM[j][i+n]){//net production or consumption
+	flag=1;
+	break;
+      }
+    }
+    if(!flag)//trivial species
+      return 1;
+  }
+  return 0;//no trivial species
+}
+
+//overloading
+bool triv_spec(char *di6, int n, int m){
+  int entries;
+  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  bool ret=triv_spec(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+// zero-one CRN: no stoichiometry larger than one
+bool zeroone(int **AM, int n, int m){
+  int i,j;
+  for(j=0;j<n;j++){// each species
+    for(i=0;i<m;i++){// reactions
+      if(AM[i+n][j]>1 || AM[j][i+n]>1){//not zero-one
+	return 0;
+      }
+    }
+  }
+  return 1;//zero-one
+}
+
+//overloading
+bool zeroone(char *di6, int n, int m){
+  int entries;
+  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  bool ret=zeroone(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+
 // nonautocatalytic if no species ever figures on both sides of any
 // reaction
-
 bool nonautocat(int **AM, int n, int m){
   int i,j;
   for(j=0;j<n;j++){// each species
@@ -10453,7 +11536,9 @@ int *reacJsgns(int **AM, int n, int m, int maxpppdegree, int *pppdegused, int de
 //overloading
 int *reacJsgns(char *di6, int n, int m, int maxpppdegree, int *pppdegused, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int *ret=reacJsgns(AM, n, m, maxpppdegree, pppdegused, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -10485,7 +11570,9 @@ int *reacJsgns(int **AM, int n, int m, int debug){
 //overloading (version using compatibility)
 int *reacJsgns(char *di6, int n, int m, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int *ret=reacJsgns(AM, n, m, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -10559,7 +11646,9 @@ int reacJrealspec(int **AM, int n, int m, int maxpppdegree, int *pppdegused, int
 //overloading
 int reacJrealspec(char *di6, int n, int m, int maxpppdegree, int *pppdegused, int *maxpos, int *maxneg, int *totzero, int *quest, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJrealspec(AM, n, m, maxpppdegree, pppdegused, maxpos, maxneg, totzero, quest, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -10592,7 +11681,9 @@ int reacJMArealspec(int **AM, int n, int m, int maxpppdegree, int *pppdegused, i
 //overloading
 int reacJMArealspec(char *di6, int n, int m, int maxpppdegree, int *pppdegused, int *maxpos, int *maxneg, int *totzero, int *quest, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMArealspec(AM, n, m, maxpppdegree, pppdegused, maxpos, maxneg, totzero, quest, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -10689,7 +11780,9 @@ int concord(int **AM, int n, int m, int debug){
 //overloading
 int concord(char *di6, int n, int m, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=concord(AM, n, m, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -10720,7 +11813,9 @@ int concord1(int **AM, int n, int m, int maxpppdegree, int debug){
 
 int concord1(char *di6, int n, int m, int maxpppdegree, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=concord1(AM, n, m, maxpppdegree, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -10918,7 +12013,9 @@ int reacJMAsingular(int **AM, int n, int m){
 //overloading
 int reacJMAsingular(char *di6, int n, int m){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMAsingular(AM, n, m);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -10946,8 +12043,41 @@ int reacJMAnonsing(int **AM, int n, int m, int maxpppdegree, int debug){
 //overloading
 int reacJMAnonsing(char *di6, int n, int m, int maxpppdegree, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMAnonsing(AM, n, m, maxpppdegree, debug);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+//Does the mass action Jacobian determinant at equilibria always
+// have positive determinant?
+int reacJMAdetpos(int **AM, int n, int m, int maxpppdegree, int debug){
+  int ret, dt, numv;
+  int **Q;
+  matrix QX;
+  matrix J=reacJMAeq(AM, n, m, &Q, &QX, &numv);
+  if(Q){
+    if(det(Q,n)>0){ret=1;}else{ret=0;}
+  }
+  else{
+    dt=DetSgn(QX, n, numv, maxpppdegree, debug);
+    if(dt==2){ret=1;}else{ret=0;}
+  }
+
+  if(Q)
+    free_imatrix(Q, 0, n-1, 0, n-1);
+  return ret;
+}
+
+//overloading
+int reacJMAdetpos(char *di6, int n, int m, int maxpppdegree, int debug){
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
+  int ret=reacJMAdetpos(AM, n, m, maxpppdegree, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
 }
@@ -10974,7 +12104,9 @@ int *reacJMAsgns(int **AM, int n, int m, int maxpppdegree, int *pppdegused, int 
 //overloading
 int *reacJMAsgns(char *di6, int n, int m, int maxpppdegree, int *pppdegused, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int *ret=reacJMAsgns(AM, n, m, maxpppdegree, pppdegused, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11008,7 +12140,9 @@ int reacJMAadmitsIpair(int **AM, int n, int m, int maxpppdegree, int *pppdegused
 //overloading
 int reacJMAadmitsIpair(char *di6, int n, int m, int maxpppdegree, int *pppdegused, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMAadmitsIpair(AM, n, m, maxpppdegree, pppdegused, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11112,7 +12246,7 @@ int degen(int **QX, int n, int rk, int level, int debug){
   }
 
   if(sgn==0){
-    if(debug){fprintf(stderr, "Identically degenerate at level %d.\n", level);}
+    if(debug){fprintf(stderr, "Exiting degen. Identically degenerate at level %d.\n", level);}
     return 2;
   }
 
@@ -11222,7 +12356,9 @@ int reacJMAdegen2(int **AM, int n, int m, int maxpppdegree, int *pppdegused, int
 //overloading
 int reacJMAdegen2(char *di6, int n, int m, int maxpppdegree, int *pppdegused, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMAdegen2(AM,n,m,maxpppdegree,pppdegused,debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11258,7 +12394,9 @@ int reacJMABT(int **AM, int n, int m, int maxpppdegree, int *pppdegused, int deb
 //overloading
 int reacJMABT(char *di6, int n, int m, int maxpppdegree, int *pppdegused, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMABT(AM,n,m,maxpppdegree,pppdegused,debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11304,7 +12442,9 @@ int reacMAeqconcord(int **AM, int n, int m, int maxpppdegree, int debug){
 //overloading
 int reacMAeqconcord(char *di6, int n, int m, int maxpppdegree, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacMAeqconcord(AM,n,m,maxpppdegree,debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11343,7 +12483,9 @@ int reacJMAposdef(int **AM, int n, int m, bool minus, int maxpppdeg, bool strict
 //overloading
 int reacJMAposdef(char *di6, int n, int m, bool minus, int maxpppdeg, bool strict, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMAposdef(AM, n, m, minus, maxpppdeg, strict, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11434,7 +12576,9 @@ int reacQMAposdef(int **AM, int n, int m, bool minus, bool strict, int maxpppdeg
 //overloading
 int reacQMAposdef(char *di6, int n, int m, bool minus, bool strict, int maxpppdeg, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacQMAposdef(AM, n, m, minus, strict, maxpppdeg, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11464,7 +12608,9 @@ int reacQMA1posdef(int **AM, int n, int m, bool minus, bool strict){
 //overloading
 int reacQMA1posdef(char *di6, int n, int m, bool minus, bool strict){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacQMA1posdef(AM, n, m, minus, strict);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11512,11 +12658,60 @@ int reacJMAisP0(int **AM, int n, int m, bool minus, int maxpppdeg, int debug){
 //(Only use on DN networks)
 int reacJMAisP0(char *di6, int n, int m, bool minus, int maxpppdeg, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMAisP0(AM, n, m, minus, maxpppdeg, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
 }
+
+
+//Does the special MA Jacobian matrix have mixed trace?
+//(Only use on DN networks)
+int reacJMAmixedtrace(int **AM, int n, int m, bool minus, int maxpppdeg, int debug){
+  int ret, numv;
+  int **Q;
+  matrix QX;
+  matrix J=reacJMAeq(AM, n, m, &Q, &QX, &numv);
+  int pppdegused;
+  int debugfull=(debug<=0)?0:debug-1;
+  //if(!Q){cerr << QX << endl;exit(0);}
+  if(Q){
+    ret=mixedtrace(Q,n,debugfull);
+    free_imatrix(Q, 0, n-1, 0, n-1);
+  }
+  else{
+    ret=mixedtrace(QX,n,maxpppdeg,&pppdegused,debugfull);
+    if(ret && debug && pppdegused>=0)
+      fprintf(stderr, "Used SDP to degree %d\n", pppdegused);
+  }
+
+  if(debug){
+    if(ret==1)
+      fprintf(stderr, "The mass action Jacobian matrix at equilibria has mixed trace\n");
+    else if(ret==-1)
+      fprintf(stderr, "It could not be confirmed whether the mass action Jacobian matrix at equilibria has mixed trace.\n");
+    else
+      fprintf(stderr, "The mass action Jacobian matrix at equilibria does not have mixed trace\n");
+  }
+  return ret;
+}
+
+//overloading
+//(Only use on DN networks)
+int reacJMAmixedtrace(char *di6, int n, int m, bool minus, int maxpppdeg, int debug){
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
+  int ret=reacJMAmixedtrace(AM, n, m, minus, maxpppdeg, debug);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+
+
 
 
 //J at MA equilibria is P0-
@@ -11543,7 +12738,9 @@ int reacJMA1squaredisP0(int **AM, int n, int m){
 //overloading
 int reacJMA1squaredisP0(char *di6, int n, int m){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMA1squaredisP0(AM, n, m);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11572,7 +12769,9 @@ int reacJMAsquaredisP0(int **AM, int n, int m, int maxpppdeg, int debug){
 //overloading
 int reacJMAsquaredisP0(char *di6, int n, int m, int maxpppdeg, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMAsquaredisP0(AM, n, m, maxpppdeg, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11588,7 +12787,9 @@ int reacJMA1comp2isP0(int **AM, int n, int m, bool minus, int maxpppdeg, int deb
 //overloading
 int reacJMA1comp2isP0(char *di6, int n, int m, bool minus, int maxpppdeg, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMA1comp2isP0(AM, n, m, minus, maxpppdeg, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11634,7 +12835,9 @@ int reacJMA1comp2simppair(int **AM, int n, int m, bool minus, int debug){
 //overloading
 int reacJMA1comp2simppair(char *di6, int n, int m, bool minus, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMA1comp2simppair(AM, n, m, minus, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11664,7 +12867,9 @@ int reacJMAcomp2isP0(int **AM, int n, int m, bool minus, int maxpppdeg, int debu
 //overloading
 int reacJMAcomp2isP0(char *di6, int n, int m, bool minus, int maxpppdeg, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMAcomp2isP0(AM, n, m, minus, maxpppdeg, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11696,7 +12901,9 @@ int DSR2MA1CondStar(int **AM, int n, int m, int debug){
 //overloading: di6 input
 int DSR2MA1CondStar(char *di6, int n, int m, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=DSR2MA1CondStar(AM, n, m, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11724,7 +12931,9 @@ int reacJMA1comp2nonsing(int **AM, int n, int m, int maxpppdegree){
 //overloading
 int reacJMA1comp2nonsing(char *di6, int n, int m, int maxpppdegree){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMA1comp2nonsing(AM, n, m, maxpppdegree);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11751,7 +12960,9 @@ int reacJMAcomp2det(int **AM, int n, int m, int maxpppdegree, int *pppdegused, i
 //overloading
 int reacJMAcomp2det(char *di6, int n, int m, int maxpppdegree, int *pppdegused, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMAcomp2det(AM, n, m, maxpppdegree, pppdegused, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11877,7 +13088,9 @@ int reacJMAcomp2detnonstationary(int **AM, int n, int m, int maxpppdegree, int d
 //overloading
 int reacJMAcomp2detnonstationary(char *di6, int n, int m, int maxpppdegree, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMAcomp2detnonstationary(AM, n, m, maxpppdegree, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11899,7 +13112,9 @@ int reacJMA1comp2detsigned(int **AM, int n, int m, int maxpppdegree){
 //deprecated
 int reacJMA1comp2detsigned(char *di6, int n, int m, int maxpppdegree){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMA1comp2detsigned(AM, n, m, maxpppdegree);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11919,7 +13134,9 @@ int reacJMA1comp2detunsigned(int **AM, int n, int m){
 //deprecated
 int reacJMA1comp2detunsigned(char *di6, int n, int m){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMA1comp2detunsigned(AM, n, m);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -11979,14 +13196,28 @@ int reacJMAdegenerate(int **AM, int n, int m, int debug){
 }
 
 
-//overloading
+//overloading, l layers
 int reacJMAdegenerate(char *di6, int n, int m, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
   int ret=reacJMAdegenerate(AM, n, m, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
 }
+
+
+//2 layers - deprecated
+int reacJMAdegenerateold(char *di6, int n, int m, int debug){
+  int entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
+  int ret=reacJMAdegenerate(AM, n, m, debug);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
 
 //Is det(J^2+I) for the special MA Jacobian matrix (1D pos kernel) positive?
 int reacJ2pIMAdetpos(int **AM, int n, int m, int maxpppdegree, int debug){
@@ -12011,7 +13242,9 @@ int reacJ2pIMAdetpos(int **AM, int n, int m, int maxpppdegree, int debug){
 //overloading
 int reacJ2pIMAdetpos(char *di6, int n, int m, int maxpppdegree, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJ2pIMAdetpos(AM, n, m, maxpppdegree, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -12030,7 +13263,9 @@ int reacJ2pIMA1detpos(int **AM, int n, int m, int maxpppdegree, int debug){
 //overloading
 int reacJ2pIMA1detpos(char *di6, int n, int m, int maxpppdegree, int debug){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJ2pIMA1detpos(AM, n, m, maxpppdegree, debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -12076,7 +13311,9 @@ int reacJMA1comp2detnonstationary(int **AM, int n, int m, int maxpppdegree, bool
 //overloading (deprecated)
 int reacJMA1comp2detnonstationary(char *di6, int n, int m, int maxpppdegree, bool q){
   int entries;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+//Petri Net adjacency matrix
   int ret=reacJMA1comp2detnonstationary(AM, n, m, maxpppdegree, q);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -12292,9 +13529,10 @@ int reacreport(char *str, int type, int n1, int m1, int maxpppdeg, char ***outli
   bool minus=1;
   int n=n1,m=m1;//for reacstr and Sauro, n1,m1 are dummies
   char **chems;
+  int totV;
 
   if(type==1){//di6
-    AM=di6toCRNam(str,n,m,&entries);
+    AM=di6toCRNam1(str, n, m, &totV, &entries);
     AMtoSSl(AM, n, m, minus, &S, &Sl);
   }
   else if(type==2){//reacstr
@@ -12404,7 +13642,8 @@ void getfacestructCRN(int **AM, int n, int m, int debug){
 //overloading di6 input
 void getfacestructCRN(char *di6, int n, int m, int debug){
   int entries;
-  int **AM=di6toCRNam(di6, n, m, &entries);
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
   getfacestructCRN(AM,n,m,debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return;
@@ -12695,11 +13934,480 @@ int endotactic(int **AM, int n, int m, int debug){
 //overloading: di6 input
 int endotactic(char *di6, int n, int m, int debug){
   int ret, entries;
-  int **AM=di6toCRNam(di6, n, m, &entries);
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
   ret=endotactic(AM,n,m,debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
 }
+
+//overloading: PN input
+int PolytopeVol(int **AM, int n, int m, int debug){
+  int ret, **S, **Sl;
+  AMtoSSl(AM, n, m, 0, &S, &Sl);
+  ret=PolytopeVol(S, Sl, n, m, debug);
+  free_imatrix(S, 0, n-1, 0, m-1);
+  free_imatrix(Sl, 0, n-1, 0, m-1);
+  return ret;
+}
+
+
+//overloading: di6 input (rank is ignored here)
+int PolytopeVol(char *di6, int n, int m, int debug){
+  int ret, entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  ret=PolytopeVol(AM,n,m,debug);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  fprintf(stderr, "Vol=%d\n", ret);
+  return ret;
+}
+
+
+
+//largely untested and very inefficient
+//computes the mixed volume in the case with and without
+//conservation laws. 
+int MixedVolCRN(int **S, int **Sl, int n, int m, int sourceonly, int rank, int debug){
+  int i,j,k;
+  bool **b;
+  int **Sl1, **Sl2;
+  int nummin,V,Vf;
+  int xc[n];
+  int flag;
+  int PV;
+  int **St,**basisSt;
+  int tot,rk,deg;
+  int pat[n];
+  int lins;
+  
+  if(sourceonly){//sources only
+    if(rank==n){//full rank case
+      V=PolytopeVol(S, Sl, n, m, debug);
+      fprintf(stderr, "MixedVol=%d\n",V);
+      return V;
+    }
+    else{
+      //sources only: r copies of Newton polytope and n-r copies of
+      //basic-simplex
+      
+      //add in basic sources 0, x_i
+
+      Sl1=imatrix(0, n-1, 0, m+n);
+      cpmat(Sl, Sl1, n, m);
+      for(i=0;i<n;i++){
+	for(j=m;j<m+n+1;j++){
+	  if(j==m)
+	    Sl1[i][j]=0;
+	  else{
+	    if(i==j-m-1)
+	      Sl1[i][j]=1;
+	    else
+	      Sl1[i][j]=0;
+	  }
+	}
+      }
+      b=bmatrix(0, n-1, 0, m+n);
+      inittozero(b,n,m+n+1);
+      for(i=0;i<rank;i++){//rank copies of Newton polytope
+	for(j=0;j<m;j++){b[i][j]=1;}
+      }
+      for(i=rank;i<n;i++){//n-rank copies of basic simplex
+	for(j=m;j<m+n+1;j++){b[i][j]=1;}
+      }
+      
+      //printmat(Sl1,n,m+n+1);//
+      //printmat(b,n,m+n+1);//
+
+      for(i=0;i<n;i++){xc[i]=i;}
+      Sl2=MinkowskiN(Sl1, n, m+n+1, b, xc, n, &nummin);
+      //printmat(Sl2,n,nummin);//
+      V=PolytopeVol(NULL, Sl2, n, nummin, debug);
+      free_imatrix(Sl2, 0, n-1, 0, nummin-1);
+      //fprintf(stderr, "PV=%d\n",V);//
+      if(debug){fprintf(stderr, "MixedVol (running) = %d/%d\n", V, (int)(factorial(n)));}
+      for(k=1;k<n;k++){
+	firstcomb(xc, n, k);
+	flag=1;
+	while(flag==1){
+	  //fprintf(stderr, "checking: ");printvec(xc,k);//
+	  Sl2=MinkowskiN(Sl1, n, m+n+1, b, xc, k, &nummin);
+	  //printmat(Sl2,n,nummin);//
+	  PV=0;if(nummin>=n){PV=PolytopeVol(NULL, Sl2, n, nummin, debug);}
+	  //fprintf(stderr, "PV=%d\n",PV);//
+	  V+=(int)(pow(-1.0,(double(n-k))))*PV;
+	  if(debug){fprintf(stderr, "MixedVol (running) = %d/%d\n", V, (int)(factorial(n)));}//exit(0);
+	  //printmat(Sl2,n,nummin);
+	  free_imatrix(Sl2, 0, n-1, 0, nummin-1);
+	  flag=nextcomb(xc, n, k);
+	  //fprintf(stderr, "V=%d/%d\n",V,(int)factorial(n));
+	}
+      }
+      free_imatrix(Sl1, 0, n-1, 0, m+n);
+      if(V%((int)factorial(n))!=0){
+	fprintf(stderr, "Oops: something went wrong with the Mixed Volume calculation: not an integer. EXITING.\n");exit(0);
+      }
+      Vf=V/((int)factorial(n));//should be an integer
+      fprintf(stderr, "MixedVol=%d\n",Vf);
+      free_bmatrix(b,0,n-1,0,m+n);
+      return Vf;
+    }//end of not-full-rank case
+  }//end of sources only
+
+  //
+  // Full CRN (i.e., not sources only)
+  //
+
+  //conservation laws
+  if(matrank(S,n,m)<n){
+
+    St=transposemat(S,n,m);
+    basisSt=minkerbasis(St,m,n,&tot,&rk,&deg,debug);
+    inittoone(pat,n);
+    for(i=0;i<tot;i++){//each basis vector
+      j=0;
+      //Choose which species to determine from conservation laws
+      //printvec(basisSt[j],n);
+      while(j<n && (!(basisSt[i][j]) || !pat[j])){j++;}
+	pat[j]=0;
+    }
+    //fprintf(stderr, "pat: "); printvec(pat,n);
+
+
+    //augment with basic simplex
+    Sl1=imatrix(0, n-1, 0, m+n);
+    cpmat(Sl, Sl1, n, m);
+    for(i=0;i<n;i++){
+      for(j=m;j<m+n+1;j++){
+	if(j==m)
+	  Sl1[i][j]=0;
+	else{
+	  if(i==j-m-1)
+	    Sl1[i][j]=1;
+	  else
+	    Sl1[i][j]=0;
+	}
+      }
+    }
+    b=bmatrix(0, n-1, 0, m+n);
+    inittozero(b,n,m+n);
+    lins=0;
+    for(i=0;i<n;i++){
+      if(pat[i]){//reaction poly
+	for(j=0;j<m;j++){
+	  if(S[i][j])//net production or consumption in jth reaction
+	    b[i][j]=1;
+	}
+      }
+      else{//conservation poly
+	for(j=m;j<n+m+1;j++){
+	  //printvec(basisSt[lins],n);
+	  if(j==m || basisSt[lins][j-m-1])
+	    b[i][j]=1;
+	}
+	lins++;
+      }
+    }
+    printmat(Sl1,n,n+m+1);
+    printmat(b,n,n+m+1);
+
+    //Full volume
+    for(i=0;i<n;i++){xc[i]=i;}
+    Sl2=MinkowskiN(Sl1, n, m+n+1, b, xc, n, &nummin);
+    V=PolytopeVol(NULL, Sl2, n, nummin, debug);
+    free_imatrix(Sl2, 0, n-1, 0, nummin-1);
+    //fprintf(stderr, "V=%d/%d\n",V,(int)factorial(n));exit(0);
+
+    for(k=1;k<n;k++){
+      firstcomb(xc, n, k);
+      flag=1;
+      while(flag==1){
+	Sl2=MinkowskiN(Sl1, n, m+n+1, b, xc, k, &nummin);
+	V+=(int)(pow(-1.0,(double(n-k))))*PolytopeVol(NULL, Sl2, n, nummin, debug);
+	//printmat(Sl2,n,nummin);
+	free_imatrix(Sl2, 0, n-1, 0, nummin-1);
+	flag=nextcomb(xc, n, k);
+	//fprintf(stderr, "V=%d/%d\n",V,(int)factorial(n));
+      }
+    }
+    if(V%((int)factorial(n))!=0){
+      fprintf(stderr, "Oops: something went wrong with the Mixed Volume calculation: not an integer. EXITING.\n");exit(0);
+    }
+    Vf=V/((int)factorial(n));//should be an integer
+    fprintf(stderr, "MixedVol=%d\n",Vf);
+    free_bmatrix(b,0,n-1,0,m+n-1);
+    free_imatrix(St,0,m-1,0,n-1);
+    free_imat(basisSt,tot);
+    free_imatrix(Sl1, 0, n-1, 0, m+n);
+  }
+  else{//no conservation laws
+
+    b=bmatrix(0, n-1, 0, m-1);
+    inittozero(b,n,m);
+    for(i=0;i<n;i++){
+      for(j=0;j<m;j++){
+	if(S[i][j])//net production or consumption in jth reaction
+	  b[i][j]=1;
+      }
+    }
+
+    //Full volume
+    for(i=0;i<n;i++){xc[i]=i;}
+    Sl2=MinkowskiN(Sl, n, m, b, xc, n, &nummin);
+    V=PolytopeVol(NULL, Sl2, n, nummin, debug);
+    free_imatrix(Sl2, 0, n-1, 0, nummin-1);
+    //fprintf(stderr, "V=%d/%d\n",V,(int)factorial(n));
+
+    for(k=1;k<n;k++){
+      firstcomb(xc, n, k);
+      flag=1;
+      while(flag==1){
+	Sl2=MinkowskiN(Sl, n, m, b, xc, k, &nummin);
+	V+=(int)(pow(-1.0,(double(n-k))))*PolytopeVol(NULL, Sl2, n, nummin, debug);
+	//printmat(Sl2,n,nummin);
+	free_imatrix(Sl2, 0, n-1, 0, nummin-1);
+	flag=nextcomb(xc, n, k);
+	//fprintf(stderr, "V=%d/%d\n",V,(int)factorial(n));
+      }
+    }
+    if(V%((int)factorial(n))!=0){
+      fprintf(stderr, "Oops: something went wrong with the Mixed Volume calculation: not an integer. EXITING.\n");exit(0);
+    }
+    Vf=V/((int)factorial(n));//should be an integer
+    fprintf(stderr, "MixedVol=%d\n",Vf);
+    free_bmatrix(b,0,n-1,0,m-1);
+
+  }
+  return Vf;
+
+}
+
+//overloading: PN input
+int MixedVolCRN(int **AM, int n, int m, int sourceonly, int rank, int debug){
+  int ret, **S, **Sl;
+  AMtoSSl(AM, n, m, 0, &S, &Sl);
+  ret=MixedVolCRN(S, Sl, n, m, sourceonly, rank, debug);
+  free_imatrix(S, 0, n-1, 0, m-1);
+  free_imatrix(Sl, 0, n-1, 0, m-1);
+  return ret;
+}
+
+//overloading: di6 input (rank is ignored here)
+int MixedVolCRN(char *di6, int n, int m, int rank, int debug){
+  int ret, entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  ret=MixedVolCRN(AM,n,m,0,rank,debug);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+//overloading: di6 input (rank essential here)
+int MixedVolCRNsrc(char *di6, int n, int m, int rank, int debug){
+  int ret, entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  ret=MixedVolCRN(AM,n,m,1,rank,debug);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+//Solvability and Mixed Vol comparison (for (n,n+k,n) CRNs)
+void printsolvabilityMixedVol(char *di6, int n, int m, int debug){
+  int entries,degree,V,totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  degree=solvabilitydegree(AM,n,m);
+  V=MixedVolCRN(AM,n,m,0,-1,debug);
+  if(degree>V)
+    fprintf(stderr, "****");
+  else if(V>degree)
+    fprintf(stderr, "####");
+  fprintf(stderr, "solvability: %d, Mixed Vol: %d\n", degree, V);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return;
+}
+
+//Solvability and Mixed Vol using sources only comparison (for (n,n+k,n) CRNs)
+void printsolvabilityMixedVolsrc(char *di6, int n, int m, int rank, int debug){
+  int entries,degree,V,totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  degree=solvabilitydegree(AM,n,m);
+  V=MixedVolCRN(AM,n,m,1,rank,debug);
+  if(degree>V)
+    fprintf(stderr, "****");
+  else if(V>degree)
+    fprintf(stderr, "####");
+  fprintf(stderr, "solvability: %d, Mixed Vol (sources only): %d\n", degree, V);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return;
+}
+
+
+
+
+
+
+//Check if a CRN has any complex with three or more reactions and such 
+//that one of these lies in the span of the others. In this case, 
+//dynamical equivalence is not equivalent to simple equivalence. 
+//Apply this test after removing CRNs with redundant reactions
+int spanreacs(int **S, int **Sl, int n, int m){
+  int i,j,i1;
+  int **Slt=transposemat(Sl, n, m);
+  int **St=transposemat(S, n, m);
+  int part[m];
+  bool partb[m];
+  int ind=1;
+  int nR;
+  inittozero(part,m);
+  //partition the reactant complexes (R-Cs)
+  for(i=0;i<m;i++){
+    if(!part[i]){
+      part[i]=ind++;
+      for(j=i+1;j<m;j++){
+	if(!part[j] && areequal(Slt[i],Slt[j],n))
+	  part[j]=part[i];
+      }
+    }
+  }
+
+  //Go through each R-C
+  for(i1=1;i1<ind;i1++){
+    nR=0;
+    for(i=0;i<m;i++){//set boolean vector
+      if(part[i]==i1){partb[i]=1;nR++;}else{partb[i]=0;}
+    }
+    if(nR>=3){//more than two reactions on this R-C
+      for(i=0;i<m;i++){
+	if(partb[i]){
+	  partb[i]=0;
+	  //printmat(St,m,n);printvec(St[i],n);
+	  if(isinspan(St,partb,m,n,St[i],0)){//redundant reac.
+	    free_imatrix(Slt,0,m-1,0,n-1);
+	    free_imatrix(St,0,m-1,0,n-1);
+	    return 1;
+	  }
+	  partb[i]=1;
+	}
+      }
+    }
+  }
+
+  free_imatrix(Slt,0,m-1,0,n-1);
+  free_imatrix(St,0,m-1,0,n-1);
+  return 0;
+}
+
+//overloading: PN input
+int spanreacs(int **AM, int n, int m){
+  int ret, **S, **Sl;
+  AMtoSSl(AM, n, m, 0, &S, &Sl);
+  ret=spanreacs(S, Sl, n, m);
+  free_imatrix(S, 0, n-1, 0, m-1);
+  free_imatrix(Sl, 0, n-1, 0, m-1);
+  return ret;
+}
+
+//overloading: di6 input
+int spanreacs(char *di6, int n, int m){
+  int ret, entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  ret=spanreacs(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+//affinely dependent sources
+//implies equilibria are identically degenerate in (2,n,2) networks
+int affdepsources(int **S, int **Sl, int n, int m){
+  int j;
+  int ret=0;
+  int **Slp=imatrix(0, n, 0, m-1);
+  cpmat(Sl, Slp, n, m);
+  for(j=0;j<m;j++)
+    Slp[n][j]=1;
+
+  if(matrank(Slp,n+1,m)<n+1)
+    ret=1;
+  free_imatrix(Slp,0,n,0,m-1);
+
+  return ret;
+}
+
+//overloading: PN input
+int affdepsources(int **AM, int n, int m){
+  int ret, **S, **Sl;
+  AMtoSSl(AM, n, m, 0, &S, &Sl);
+  ret=affdepsources(S, Sl, n, m);
+  free_imatrix(S, 0, n-1, 0, m-1);
+  free_imatrix(Sl, 0, n-1, 0, m-1);
+  return ret;
+}
+
+//overloading: di6 input
+int affdepsources(char *di6, int n, int m){
+  int ret, entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  ret=affdepsources(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+
+//Count the number of distinct source complexes in a CRN
+int countsources(int **S, int **Sl, int n, int m){
+  int i,j;
+  int **Slt=transposemat(Sl, n, m);
+  int part[m];
+  int ind=1;
+  inittozero(part,m);
+  //partition the reactant complexes (R-Cs)
+  for(i=0;i<m;i++){
+    if(!part[i]){
+      part[i]=ind++;
+      for(j=i+1;j<m;j++){
+	if(!part[j] && areequal(Slt[i],Slt[j],n))
+	  part[j]=part[i];
+      }
+    }
+  }
+  free_imatrix(Slt,0,m-1,0,n-1);
+  return ind-1;
+}
+
+//overloading: PN input
+int countsources(int **AM, int n, int m){
+  int ret, **S, **Sl;
+  AMtoSSl(AM, n, m, 0, &S, &Sl);
+  ret=countsources(S, Sl, n, m);
+  free_imatrix(S, 0, n-1, 0, m-1);
+  free_imatrix(Sl, 0, n-1, 0, m-1);
+  return ret;
+}
+
+//overloading: di6 input, l layers
+int countsources(char *di6, int n, int m){
+  int ret, entries;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  ret=countsources(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+
+//2 layers only - deprecated
+int countsourcesold(char *di6, int n, int m){
+  int ret, entries;
+  int **AM=di6toCRNam(di6, n, m, &entries);
+  ret=countsources(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+
 
 //Check if a CRN has any reactions which could be removed to leave
 //a dynamically equivalent CRN
@@ -12765,7 +14473,8 @@ int redundantreacs(int **AM, int n, int m){
 //overloading: di6 input
 int redundantreacs(char *di6, int n, int m){
   int ret, entries;
-  int **AM=di6toCRNam(di6, n, m, &entries);
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
   ret=redundantreacs(AM,n,m);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -12805,7 +14514,8 @@ int repeatedreacs(int **AM, int n, int m){
 //overloading: di6 input
 int repeatedreacs(char *di6, int n, int m){
   int ret, entries;
-  int **AM=di6toCRNam(di6, n, m, &entries);
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
   ret=repeatedreacs(AM,n,m);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -12846,7 +14556,9 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
     return dynamicshortfile(fname, outfname, "allcomplexes", n, m, 0);
   else if(!strcmp(filt, "isomorphnewton"))//isomorphic newton polytopes
     return dynamicshortfile(fname, outfname, "sourcecomplexes", n, m, 0);
-  else if(!strcmp(filt, "orderbynetprod"))//isomorphic newton polytopes
+  else if(!strcmp(filt, "isomorphnewton1"))//isomorphic sources
+    return dynamicshortfile(fname, outfname, "sourcecomplexesfull", n, m, 0);
+   else if(!strcmp(filt, "orderbynetprod"))
     return dynamicshortfile(fname, outfname, "netprod", n, m, 0);
 
   if(!(fdin = fopen(fname, "r"))){
@@ -12856,11 +14568,28 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
 
   if(!outfname){//pseudotest: print to stdout
     printf("checking %ld CRNs.\n", numl);
+    if(!strcmp(filt, "multinn2nscr")||!strcmp(filt, "multinn3nscr")||!strcmp(filt, "multi342scr")||!strcmp(filt, "CylinderScr3")||!strcmp(filt, "CylinderScr")){
+      fprintf(stderr, "#!/usr/bin/env wolframscript\n(* ::Package:: *)\n\n");
+    }
+    
     while(getline0(fdin, oneline, maxl) > 0){
       if(iscomline(oneline))//ignore
 	continue;
 
       i++;
+      if(!strcmp(filt, "multinn2nscr")||!strcmp(filt, "multinn3nscr")||!strcmp(filt, "multi342scr")||!strcmp(filt, "CylinderScr3")||!strcmp(filt, "CylinderScr")){
+	 fprintf(stderr, "Print[\"%ld/%ld\"]\n",i,numl);
+	 str=di6toreacstr(oneline,n,m,0);
+	 fprintf(stderr, "Print[\"%s\"]\n",str);
+	 free(str);
+      }
+      if(!strcmp(filt, "MixedVol")||!strcmp(filt, "MixedVolsrc")||!strcmp(filt, "printsolvabilityMixedVol")||!strcmp(filt, "printsolvabilityMixedVolsrc")||!strcmp(filt, "printQmixed")){
+	fprintf(stderr,"//%ld/%ld\n",i,numl);//to stdout
+	str=di6toreacstr(oneline,n,m,0);
+	fprintf(stderr, "%s",str);
+	free(str);
+      }
+
       printf("//%ld/%ld\n",i,numl);//to stdout
       if(!strcmp(filt, "printreacs")){
 	str=di6toreacstr(oneline,n,m,0);
@@ -12905,18 +14634,87 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
 	printreacQ(oneline, n, m);
 	num++;
       }
+      //print the matrix whose rows are a basis of ker[A|1]^t
+      else if(!strcmp(filt, "printW")){
+	printW(oneline, n, m, debug);
+	num++;
+      }
+      //print the the stoichiometric and exponent matrices
+      else if(!strcmp(filt, "printSSl")){
+	printSSl(oneline, n, m);
+	num++;
+      }
       //print the first factor in the MA Jacobian matrix at equilibria
       //in maxima form
       else if(!strcmp(filt, "printQmax")){
 	printreacQ_max(oneline, n, m);
 	num++;
       }
-      else if(!strcmp(filt, "molecularity")){
+      else if(!strcmp(filt, "printmolecularity")){
 	printmolecularity(oneline, n, m);
+	num++;
+      }
+      else if(!strcmp(filt, "CylinderScr3")){
+	CylinderScr3(oneline, n, m);
+	num++;
+      }
+      else if(!strcmp(filt, "CylinderScr")){
+	CylinderScr(oneline, n, m);
+	num++;
+      }
+      else if(!strcmp(filt, "multinn2nscr")){
+	multinn2nscr(oneline, n, m, iconst);//searching for iconst PNE
+	num++;
+      }
+      else if(!strcmp(filt, "multinn3nscr")){
+	multinn3nscr(oneline, n, m, iconst);//searching for iconst PNE
+	num++;
+      }
+      else if(!strcmp(filt, "multi342scr")){
+	multi342scr(oneline, n, m);
+	num++;
+      }
+      else if(!strcmp(filt, "printA1inv")){
+	printA1inv(oneline, n, m);
+	num++;
+      }
+      else if(!strcmp(filt, "printA1kervec")){
+	printA1kervec(oneline, n, m);
+	num++;
+      }
+      else if(!strcmp(filt, "printsolvability")){
+	printsolvability(oneline, n, m, debug);
+	num++;
+      }
+      else if(!strcmp(filt, "printsolvabilityMixedVol")){
+	printsolvabilityMixedVol(oneline, n, m, debug);
+	num++;
+      }
+      else if(!strcmp(filt, "printsolvabilityMixedVolsrc")){
+	printsolvabilityMixedVolsrc(oneline, n, m, iconst, debug);
+	num++;
+      }
+      else if(!strcmp(filt, "printQmixed")){
+	printQmixed(oneline, n, m);
 	num++;
       }
       else if(!strcmp(filt, "getfacestruct")){
 	getfacestructCRN(oneline, n, m, debug);
+	num++;
+      }
+      //Volume of Newton Polytope
+      else if(!strcmp(filt, "PolytopeVol")){
+	PolytopeVol(oneline, n, m, debug);
+	num++;
+      }
+      //Mixed volume (4th arg: rank ignored)
+      else if(!strcmp(filt, "MixedVol")){
+	MixedVolCRN(oneline, n, m, -1, debug);
+	num++;
+      }
+      //Mixed volume LHS only (4th arg: rank essential)
+      else if(!strcmp(filt, "MixedVolsrc")){
+	MixedVolCRNsrc(oneline, n, m, iconst, debug);
 	num++;
       }
       else{
@@ -12965,6 +14763,113 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
       if(debug)
 	fprintf(stderr, "rank=%d\n", val);
     }
+    //molecularity
+    else if(!strcmp(filt, "molecularity")){
+      if((val=molecularity(oneline, n, m))==iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "molecularity=%d\n", val);
+    }
+    else if(!strcmp(filt, "notmolecularity")){
+      if((val=checkrank(oneline, n, m))!=iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "molecularity=%d\n", val);
+    }
+    //number of sources
+    else if(!strcmp(filt, "sources")){
+      if((val=countsources(oneline, n, m))==iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "sources=%d\n", val);
+    }
+    else if(!strcmp(filt, "notsources")){
+      if((val=countsources(oneline, n, m))!=iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "sources=%d\n", val);
+    }
+    //affine dependence among sources
+    else if(!strcmp(filt, "affdepsources")){
+      if(affdepsources(oneline, n, m)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    else if(!strcmp(filt, "notaffdepsources")){
+      if(!affdepsources(oneline, n, m)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+
+    //rank of reactant matrix
+    else if(!strcmp(filt, "leftrank")){
+      if((val=checkrankleft(oneline, n, m))==iconst){//rank
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "left rank=%d\n", val);
+    }
+    else if(!strcmp(filt, "notleftrank")){
+      if((val=checkrankleft(oneline, n, m))!=iconst){//rank
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "left rank=%d\n", val);
+    }
+
+    //rank of reactant matrix augmented with row of ones
+    else if(!strcmp(filt, "leftrank1")){
+      if((val=checkrankSil1(oneline, n, m))==iconst){//rank
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "rank of [A|1]=%d\n", val);
+    }
+    else if(!strcmp(filt, "notleftrank1")){
+      if((val=checkrankSil1(oneline, n, m))!=iconst){//rank
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "rank of [A|1]=%d\n", val);
+    }
+
+    //degree of solvability polynomial (use for (n,n+k,n))
+    else if(!strcmp(filt, "solvabilitydegree")){
+      if((val=solvabilitydegree(oneline, n, m))==iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "solvability degree=%d\n", val);
+    }
+    else if(!strcmp(filt, "notsolvabilitydegree")){
+      if((val=solvabilitydegree(oneline, n, m))!=iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "solvability degree=%d\n", val);
+    }
+
+    //mixed volume of Q
+    else if(!strcmp(filt, "Qmixed")){
+      if((val=Qmixed(oneline, n, m))==iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "Qmixed Vol=%d\n", val);
+    }
+    else if(!strcmp(filt, "notQmixed")){
+      if((val=solvabilitydegree(oneline, n, m))!=iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "Qmixed Vol=%d\n", val);
+    }
+
+
     //dynamically nontrivial
     else if(!strcmp(filt, "DN") || !strcmp(filt, "dynnontriv")){
       if(DN(oneline, n, m)){
@@ -12984,6 +14889,17 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
     }
     else if(!strcmp(filt, "notbdclass")){
       if(!bdclass(oneline, n, m, debug)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    //homogeneous (i.e., 1^t\Gamma = 0)
+    else if(!strcmp(filt, "homogen")){
+      if(homogen(oneline, n, m, debug)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    else if(!strcmp(filt, "nothomogen")){
+      if(!homogen(oneline, n, m, debug)){
 	num++;fprintf(fd, "%s\n", oneline);
       }
     }
@@ -13032,7 +14948,7 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
 	num++;fprintf(fd, "%s\n", oneline);
       }
     }
-    //Genuine (no trivial species)
+    //Genuine (no unused species)
     else if(!strcmp(filt, "genuine")){
       if(genuine(oneline, n, m)){
 	num++;fprintf(fd, "%s\n", oneline);
@@ -13040,6 +14956,17 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
     }    
     else if(!strcmp(filt, "notgenuine")){
       if(!genuine(oneline, n, m)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    //trivial species (a species with no net change in any reaction)
+    else if(!strcmp(filt, "trivspec")){
+      if(triv_spec(oneline, n, m)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }    
+    else if(!strcmp(filt, "nottrivspec")){
+      if(!triv_spec(oneline, n, m)){
 	num++;fprintf(fd, "%s\n", oneline);
       }
     }
@@ -13051,6 +14978,17 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
     }    
     else if(!strcmp(filt, "autocat")){
       if(!nonautocat(oneline, n, m)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    //zero-one (all stoichiometries <=1)
+    else if(!strcmp(filt, "zeroone")){
+      if(zeroone(oneline, n, m)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    } 
+    else if(!strcmp(filt, "notzeroone")){
+      if(!zeroone(oneline, n, m)){
 	num++;fprintf(fd, "%s\n", oneline);
       }
     }
@@ -13106,6 +15044,17 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
     }
     else if(!strcmp(filt, "notredundantreacs")){
       if(!redundantreacs(oneline, n, m)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    //redundant reactions?
+    else if(!strcmp(filt, "spanreacs")){
+      if(spanreacs(oneline, n, m)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    else if(!strcmp(filt, "notspanreacs")){
+      if(!spanreacs(oneline, n, m)){
 	num++;fprintf(fd, "%s\n", oneline);
       }
     }
@@ -13210,7 +15159,7 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
     	num++;fprintf(fd, "%s\n", oneline);
       }
     }
-    //Semiconcordant (MA Jacobian matrix has maximal rank everywhere)
+    //Semiconcordant (MA Jacobian matrix is a nonsingular transformation on the stoichiometric subspace)
     else if(!strcmp(filt, "semiconcord") || !strcmp(filt, "semiconcordant")){//do positively compatible first
       if(semiconcord(oneline, n, m, debug)){
     	num++;fprintf(fd, "%s\n", oneline);
@@ -13383,6 +15332,17 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
 	num++;fprintf(fd, "%s\n", oneline);
       }
     }
+    //Jacobian matrix (mass action, at +ve equilibria) has positive determinant
+    else if(!strcmp(filt, "JMAdetpos")){
+      if(reacJMAdetpos(oneline, n, m, iconst-1, debug)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    else if(!strcmp(filt, "notJMAdetpos")){
+      if(!reacJMAdetpos(oneline, n, m, iconst-1, debug)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
     //Jacobian matrix at equilibria always has rank of stoichiometric matrix
     //better than nonsing, because we don't make assumptions about the rank
     else if(!strcmp(filt, "MAeqconcord")){
@@ -13442,6 +15402,18 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
     }
     else if(!strcmp(filt, "notJMAisP0")){
       if(!reacJMAisP0(oneline, n, m, 0,iconst-1,debug)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    //JMA has mixed trace means the trace can definitely take all signs
+    else if(!strcmp(filt, "mixedtrace")){
+      if(reacJMAmixedtrace(oneline, n, m, 1,iconst-1,debug)==1){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    //JMA notmixedtrace means the trace is definitely of constant sign
+    else if(!strcmp(filt, "notmixedtrace")){
+      if(reacJMAmixedtrace(oneline, n, m, 1,iconst-1,debug)==0){
 	num++;fprintf(fd, "%s\n", oneline);
       }
     }
@@ -13703,7 +15675,9 @@ void checkTarjanCircuits1(){
 //switch sign of the second factor
 int **DSR(char *di6, int n, int m){
   int entries,i,j;
-  int **AM=di6toCRNam(di6,n,m,&entries);//Petri Net adjacency matrix
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+
   //redefine AM to give AM of DSR
   for(i=0;i<m;i++){// reactions
     for(j=0;j<n;j++){// species
@@ -14131,7 +16105,8 @@ int DSRCondStarPN(int **PNAM, int n, int m, int *report, int rev, int debug){
 // In case rev=2, return 2 if first fails and second succeeds
 int DSRCondStar(char *di6, int n, int m, int *report, int rev, int debug){
   int ret=0,entries;
-  int **AM=di6toCRNam(di6, n, m, &entries);
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
   ret=DSRCondStarPN(AM,n,m,report,rev,debug);
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return ret;
@@ -14245,108 +16220,49 @@ void checkDSRCondStar(const char *fname, int debug){
 }
 
 
-bool supervec(int *A, int szA, int **B, int totB){
-  int i;
-  for(i=0;i<totB;i++){
-    //fprintf(stderr, "checking:\n");printvec(A,szA);printvec(B[i]+1,B[i][0]);
-    if(AsubsB(B[i]+1, B[i][0], A, szA)){//Does the support of A contain that of any previously gathered?
-      //fprintf(stderr, "superset:\n");printvec(A,szA);printvec(B[i]+1,B[i][0]);
-      return 1;
-    }
-  }
-  return 0;
-}
 
-void merge(int *xc, int *tmpvec, int k, int *outvec, int m){
-  int i;
-  inittozero(outvec,m);
-  for(i=0;i<k;i++)
-    outvec[xc[i]]=tmpvec[i];
-  return;
-}
-
-//Extreme vectors of the positive kernel of Si as rows of output
-int **poskerbasis(int **Si, int n, int m, int *tot, int *rk){
-  (*rk)=matrank(Si,n,m);//rank
-  int kerdim=m-(*rk);//dimension of kernel
-  int xc[n],yc[m],tmpvec[m],tmpvec1[m],tmpvec2[m];
+// A basis of minimal vectors for ker[A|1]^t (or ker[A|1]).
+// "minimal" means with as many zeros as possible, corresonding
+// in the case ker[A|1]^t to dependencies amongst sources on faces
+// of minimal dimension in the Newton Polytope
+// "transpose" means ker[A|1]
+int **minA1tkerbasis(int **Sil, int nt, int mt, int *tot, int *rk, int *deg, int transpose, int debug){
   int **basis=NULL;
-  int **faces=NULL;
-  int **redSi;
-  int flag;
-  int i, k0;
-  int debug=0;
+  int i, j;
+  int **Sil0=imatrix(0, nt, 0, mt-1);
+  int **Sil1;
+  int n,m;
+
+  if(debug){fprintf(stderr, "\n###Entering minA1tkerbasis.\n");}
+  
   (*tot)=0;
-  if(debug){fprintf(stderr, "\n###Entering poskerbasis. Rank=%d\nSi:\n", (*rk));printmat(Si,n,m);}
 
-  //no +ve vectors in kernel
-  //  if(kerdim<=0 || hasposrkervec(Si,n,m,1)!=1)
-  if(kerdim<=0 || hasposlimvec(Si,n,m))
-    return NULL;
-
-  //basis=imatrix(0, kerdim-1, 0, m-1);
-  if(kerdim==1){
-    posintkervec(Si, n, m, tmpvec1,1);
-    (*tot)=addnewtoarray(&basis, *tot, tmpvec1, m);
-    return basis;
-  }
-
-
-  firstcomb(xc, n, n);//all rows
-  k0=2;//initial dimension set to two as we don't allow trivial reactions
-//  while(k0<=m-kerdim+1 /* && (*tot)<kerdim */){
-  while(k0<m){
-    firstcomb(yc, m, k0);flag=1;
-    while(flag==1){//each vector with support of size k0
-      //this should avoid non-extreme vectors being found; posintkervec fails otherwise
-      if(!supervec(yc, k0, faces, (*tot))){
-	//fprintf(stderr, "%d\n", *tot);
-	redSi=submat(Si,n,m,xc,n,yc,k0);
-	if(debug){fprintf(stderr, "**Checking submatrix:\n");printmat(redSi,n,k0);}
-	if(!hasposlimvec(redSi,n,k0)){
-	  posintkervec(redSi, n, k0, tmpvec,1);
-	  merge(yc,tmpvec,k0,tmpvec1,m);
-	  addnewtoarray(&basis, *tot, tmpvec1, m);
-	  if(debug){printvec(basis[(*tot)],m);printvec(yc,k0);}
-	  tmpvec2[0]=k0;
-	  for(i=0;i<k0;i++)
-	    tmpvec2[i+1]=yc[i];
-	  addnewtoarray(&faces, *tot, tmpvec2, k0+1);
-
-	  (*tot)++;
-	  if(kerdim<=2 && (*tot)==kerdim){//done
-	    free_imatrix(redSi,0,n-1,0,k0-1);
-	    free_imat(faces, *tot);
-	    if(debug){fprintf(stderr, "Exiting poskerbasis.\n");}
-	    return basis; 
-	  }
-	}
-	free_imatrix(redSi,0,n-1,0,k0-1);
-      }
-      flag=nextcomb(yc, m, k0);
+  //Augment with a row of ones
+  for(i=0;i<nt;i++){
+    for(j=0;j<mt;j++){
+      Sil0[i][j]=Sil[i][j];
     }
-    //if((*tot)<kerdim)
-      k0++;
   }
-
-
-  if((*tot)>kerdim){//only do this if we have a possibly non-simplicial cone
-    bool verts[*tot];
-    int numverts=getextremeraybool(basis, *tot, m, verts);
-    if(numverts!=*tot){//not all vectors found are extreme vectors: can this happen?
-      fprintf(stderr, "\tUnexpected behaviour in \"poskerbasis\".\n\tSome vectors found which were not extreme.\n\tExplore why. EXITING.\n");exit(0);
-      int tot1;
-      int **basisnew=submatfromrowbool(basis, *tot, m, verts, &tot1);
-      free_imat(faces, *tot);
-      free_imat(basis, *tot);
-      (*tot)=tot1;
-      return basisnew;
-    }
-    else if(debug)
-      fprintf(stderr, "The positive part of the kernel forms a non-simplicial cone.\n");
+  for(j=0;j<mt;j++)
+    Sil0[nt][j]=1;
+  
+  if(transpose){
+    n=mt-1;m=nt+1;
+    Sil1=transposemat(Sil0,nt+1,mt);
   }
-  free_imat(faces, *tot);
-  if(debug){fprintf(stderr, "Exiting poskerbasis.\n");}
+  else{
+    n=nt;m=mt;
+    Sil1=cpmat(Sil0,nt+1,mt);
+  }
+  free_imatrix(Sil0,0, nt, 0, mt-1);
+  //fprintf(stderr, "here: n = %d, m= %d\n",n,m);
+  if(debug){printmat(Sil1,n+1,m);}
+  
+  basis=minkerbasis(Sil1,n+1,m,tot,rk,deg,debug);
+  
+  if(debug){fprintf(stderr, "###Exiting minA1tkerbasis.\n");}
+  free_imatrix(Sil1,0, n, 0, m-1);
   return basis;
 }
+
 

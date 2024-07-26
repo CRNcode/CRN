@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2022, Murad Banaji
+/* Copyright (C) 2010-2024, Murad Banaji
  *
  * This file is part of CRNcode
  *
@@ -679,7 +679,7 @@ ex gcdpoly(ex e){
     return e;
 
   if(!(is_a<add>(e)))// a single term
-    return expand(e/monocf(e));
+    return expand(e/abs(monocf(e)));
 
   g=0;
   for (size_t k=0; k!=e.nops(); ++k){//each term
@@ -1098,6 +1098,21 @@ int polyvars(ex e, char ***vars){
   return numv;
 }
 
+// Overloading: Extract variable names from a polynomial
+// assume an existing list of variables
+int polyvars(ex e, char ***vars, int *numv){
+  if(e==0)
+    return (*numv);
+  
+  if(!(is_a<add>(e)))// a single term
+    monovars(e,vars,numv);
+  else{
+    for (size_t k=0; k!=e.nops(); ++k)
+      monovars(e.op(k),vars, numv);
+  }
+  return (*numv);
+}
+
 // (See monosimp)
 ex polysimp(ex e, char ***vars, int *numv){
   ex extot=0;
@@ -1189,7 +1204,7 @@ void polyvarss(ex e, ex *vars, char **varnames, int numv){
   return;
 }
 
-// From a polynomial to standard form to the same in exponential form
+// From a polynomial in standard form to the same in exponential form
 void extolst(ex tmp, int numv, int ***explst, int **cflst, long *r){
   int **lst;
   polytointlist0(tmp, &lst, cflst, r);
@@ -1385,10 +1400,15 @@ int polylistsimp(int **lst, int numv, long r, int ***lstnew, int mkhom, int tmpp
       (*polymaxdeg)=maxdeg;
     }
     else{
-      (*polymindeg)=mindeg;
+      (*polymindeg)=maxdeg;
       (*polymaxdeg)=maxdeg;
     }
   }
+  else{
+    (*polymindeg)=mindeg;
+    (*polymaxdeg)=maxdeg;
+  }
+
   return j;//new number of variables
 }
 
@@ -1422,6 +1442,26 @@ ex lrexptopolysimp(int **l, double *cfs, long numinds, int n){
   int j;
   for(i=0;i<numinds;i++){//each monomial
     ex1=cfs[i];
+    for(j=0;j<n;j++){ // each symbol
+      if(l[i][j]){
+	sprintf(str1, "v%d", j+1);
+	ex1*=pow(get_possymbol(str1),l[i][j]);
+      }
+    }
+    extot+=ex1;
+  }
+  return extot;
+}
+
+//just the monomials (coeffs all 1)
+ex lrexptopolystruct(int **l, long numinds, int n){
+  char str1[10];
+  ex extot=0;
+  ex ex1;
+  long i;
+  int j;
+  for(i=0;i<numinds;i++){//each monomial
+    ex1=1;
     for(j=0;j<n;j++){ // each symbol
       if(l[i][j]){
 	sprintf(str1, "v%d", j+1);
@@ -1502,7 +1542,6 @@ ex polyhomsimp(ex tmp1, int *numvin, int *numvout, int *deg, int mkhom, int dcfs
 
   //This can reduce the degree of a polynomial by collapsing variables. 
   numv=polylistsimp(tmplst, numv1, r, &lst, mkhom, tmppolymindeg, tmppolymaxdeg, &polymindeg, &polymaxdeg);
-
   (*deg)=polymaxdeg;
 
   if(debugfull)
@@ -1566,6 +1605,106 @@ ex polyfromfile(const char filename[], int *numvin, int *numv, int *deg, int mkh
   return tmp;
 }
 
+
+// List of polys in a file, one per line, must end with an empty line
+// Put all the monomials in a matrix (numv X totmons), one per col
+// put all the coeffs in a matrix (totpols X totmons), i.e.,
+// col=monomial index, row=poly number
+// Convenient for Mixed Volume calculation
+void polysfromfile(const char fname[], int ***mons, double ***cfs, int *numv, long *totmons, int *totpols, int debug){
+  FILE *fd;
+  char oneline[5000];
+  ex tmp, tmp1;
+  ex structpoly=0;
+  parser p;
+  char **pvars;
+  int i;
+  long r, r1, s, t;
+  int **lst, **lst1;
+  double *cflst, *cflst1;
+  (*totpols)=0;
+  int totp=0;
+  (*numv)=0;
+
+  //Parse 1: get variable names
+  if(!(fd = fopen(fname, "r"))){
+    fprintf(stderr, "Error in polysfromfile: file %s couldn't be opened. EXITING\n", fname);exit(0);
+  }
+
+  while(getline0(fd, oneline, 5000) > 0){
+    if(!iscomline(oneline)){
+      tmp=expand(p(oneline));
+      polyvars(tmp, &pvars, numv);
+      (*totpols)++;
+      if(debug){
+	cerr<< "Poly " << (*totpols) << ": " << tmp << endl;
+      }
+    }
+  }
+
+  if(debug){
+    fprintf(stderr, "variables:");
+    for(i=0;i<(*numv);i++){fprintf(stderr, " %s",pvars[i]);}
+    fprintf(stderr, "\n");
+  }
+  fclose(fd);
+
+  //second parse
+  if(!(fd = fopen(fname, "r"))){
+    fprintf(stderr, "Error in polysfromfile: file %s couldn't be opened. EXITING\n", fname);exit(0);
+  }
+  while(getline0(fd, oneline, 5000) > 0){
+    if(!iscomline(oneline)){
+      tmp=expand(p(oneline));
+      tmp1=polysimp(tmp, &pvars, numv);//standard form
+      //cout << tmp << "\n" <<tmp1 << endl;
+      extolst(tmp1, (*numv), &lst, &cflst, &r);
+      structpoly+=lrexptopolystruct(lst,r,(*numv));
+      //cerr<< structpoly << endl;
+      ifree(lst,r);free((char*)cflst);
+    }
+  }
+  extolst(structpoly, (*numv), &lst, &cflst, &r);
+  fclose(fd);
+  *totmons=r;
+  (*mons)=imatrix(0,(*numv)-1,0,(*totmons)-1);
+  (*cfs)=dmatrix(0,(*totpols)-1,0,(*totmons)-1);
+
+  for(i=0;i<(*numv);i++){//mons is a matrix rather than a list of vectors
+    for(s=0;s<(*totmons);s++){
+      (*mons)[i][s]=lst[s][i];
+    }
+  }
+  for(i=0;i<(*totpols);i++){//initialise coefficient matrix
+    for(s=0;s<(*totmons);s++){
+      (*cfs)[i][s]=0.0;
+    }
+  }
+  
+  //third parse
+  if(!(fd = fopen(fname, "r"))){
+    fprintf(stderr, "Error in polysfromfile: file %s couldn't be opened. EXITING\n", fname);exit(0);
+  }
+  while(getline0(fd, oneline, 5000) > 0){
+    if(!iscomline(oneline)){
+      tmp=expand(p(oneline));
+      tmp1=polysimp(tmp, &pvars, numv);//standard form
+      extolst(tmp1, (*numv), &lst1, &cflst1, &r1);
+      for(s=0;s<r1;s++){//must be there already
+	t=isinarray(lst,(*totmons),lst1[s],(*numv));
+	//fprintf(stderr, "(*totmons)=%d,t=%d\n",(int)(*totmons),(int)t);
+	(*cfs)[totp][t]=cflst1[s];
+      }
+      totp++;
+      ifree(lst1,r1);free((char*)cflst1);
+    }
+  }
+
+  fclose(fd);
+  ifree(lst,r);free((char*)cflst);
+  freearraydat(pvars, (*numv));
+  return;
+}
 
 
 // vector of unknowns; for compatibility, we stick with "v"

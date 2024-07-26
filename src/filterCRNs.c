@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2022, Murad Banaji
+/* Copyright (C) 2010-2024, Murad Banaji
  *
  * This file is part of CRNcode
  *
@@ -96,6 +96,12 @@ int main(int argc, char *argv[]){
 
 
   if(!strcmp(filter,"rank")){
+    if(mainargs<6){
+      fprintf(stderr, "The sixth argument must be the rank. EXITING.\n");
+      exit(0);
+    }
+  }
+  if(!strcmp(filter,"MixedVolsrc")|| !strcmp(filter,"printsolvabilityMixedVolsrc")){
     if(mainargs<6){
       fprintf(stderr, "The sixth argument must be the rank. EXITING.\n");
       exit(0);
