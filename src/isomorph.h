@@ -36,4 +36,4 @@ unsigned long buildsupCRN(char *infile, char *outfile, int n, int m, unsigned lo
 bool CRNsubset(const char *file1, const char *file2, const char *file3, const char *file4, const char *file5, int n, int m, int debug);
 unsigned long getallisomorphs(char *isotablefile, char *infilepre, char *infileDI, char *infile, char *outfile, unsigned long *numin);
 int CRNwithsources(const char *filein, const char *filesources, const char *fileout, int n, int m, int debug);
-unsigned long genmultisrc(int n, int m, char *outfile, int molecularity, int debug);
+unsigned long genmultisrc(int n, int m, const char outfile[], int molecularity, int debug);

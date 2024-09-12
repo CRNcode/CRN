@@ -1,0 +1,41 @@
+## Script confirming that "Quadratic (2, m, 2) networks with no more than
+## 4 distinct sources admit no more than three positive nondegenerate
+## equilibria. This bound is achieved by quadratic (2,4,2) networks."
+## [Thm. 5.3]
+## Also: "no quadratic (2,4,2) network with product molecularity of less than
+## 6 admits three positive nondegenerate equilibria" [Rem. 5.4]
+
+##First generate the candidate sources
+
+#70 combinations of sources (not necessarily distinct)
+../bin/genbimol -fLHS networks/24src.d6 2 4
+#9 have four distinct sources
+../bin/filterCRNs networks/24src.d6 networks/24src4.d6 2 4 sources 4
+#[A|1] has rank 3 in all cases obviously 
+../bin/filterCRNs networks/24src4.d6 networks/24src_LR3.d6 2 4 leftrank1 3
+#None have solvability degree greater than 4
+../bin/filterCRNs networks/24src_LR3.d6 tempfiles/24src_LR3_deg4.d6 2 4 solvabilitydegreeplus 4
+#2 have solvability degree three
+../bin/filterCRNs networks/24src_LR3.d6 networks/24src_LR3_deg3.d6 2 4 solvabilitydegree 3
+
+######
+#Now generate all quadratic at-most-hexamolecular (2,4,2) CRNs
+#with the potential for 3 or more MPNE (takes a few minutes)
+#1201825 dynamically nontrivial, genuine quadratic at-most-hexamolecular CRNs
+../bin/genbimultimol -fDNgenuine tempfiles/24hexaA.d6 2 4 6
+#291607 simple equivalence classes
+../bin/filterCRNs tempfiles/24hexaA.d6 tempfiles/24hexaB.d6 2 4 dynisomorphMA
+#291321 have rank 2
+../bin/filterCRNs tempfiles/24hexaB.d6 networks/242hexa.d6 2 4 rank 2
+#228805 admit positive nondegenerate equilibria
+../bin/filterCRNs networks/242hexa.d6 networks/242hexa_ND.d6 2 4 notMAdegenerate
+#18237 have the desired sources
+../bin/CRNwithsources networks/242hexa_ND.d6 networks/24src_LR3_deg3.d6 networks/242hexa_cubic.d6 2 4
+#Produce the Mathematica script to check for 3 PNE using FindInstance
+../bin/filterCRNs networks/242hexa_cubic.d6 NULL 2 4 multinn2nscr 3 2> tempfiles/242hexa.wls
+## Now run the following and search the log file: finds three networks
+## (hexamolecular with sources 0,X,2Y,X+Y) instances. 
+## Mathematica takes ~10 mins
+chmod +x tempfiles/242hexa.wls
+./tempfiles/242hexa.wls > tempfiles/242hexa.log
+

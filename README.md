@@ -28,9 +28,13 @@ If all goes well, the main binaries can be constructed with:
 
 ###Documentation
 
-The [manual](https://github.com/CRNcode/CRN/blob/main/docs/CRNcode.pdf) describes some features of the library. It is currently very incomplete. 
+The [manual](https://github.com/CRNcode/CRN/blob/main/docs/CRNcode.pdf) describes some features of the library. It is currently very incomplete, and somewhat out of date
 
 ###Folders associated with particular projects
 
-The [HopfAtoms folder](https://github.com/CRNcode/CRN/tree/main/HopfAtoms) contains scripts and data associated with the paper *The smallest bimolecular mass action reaction networks admitting Andronov-Hopf bifurcation* (<https://arxiv.org/abs/2207.04971>) (with Balázs Boros; other scripts associated with this paper are on GitHub [here](https://github.com/balazsboros/reaction_networks/tree/main/3species_4reactions)).
+The [HopfAtoms folder](https://github.com/CRNcode/CRN/tree/main/HopfAtoms) contains scripts and data associated with the paper *The smallest bimolecular mass action reaction networks admitting Andronov-Hopf bifurcation* (<https://iopscience.iop.org/article/10.1088/1361-6544/acb0a8>) (with Balázs Boros; other scripts associated with this paper are on GitHub [here](https://github.com/balazsboros/reaction_networks/tree/main/3species_4reactions)).
+
+The [MPNEbounds folder](https://github.com/CRNcode/CRN/tree/main/MPNEbounds) contains scripts associated with the paper *Some bounds on positive equilibria in mass action networks* (<https://arxiv.org/abs/2409.06877>).
+
+
 

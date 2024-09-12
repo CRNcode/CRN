@@ -411,7 +411,7 @@ unsigned long genbimol(int n, int m, char *outfile, int open, int rev, const cha
     for(j=m;j<=4*m;j++){//open files (total degree at least m)
       sprintf(current_file, "tempfiles/__tmp%d_%d_0", inv, j); 
       if(!(fd1[inv][j-m]=fopen(current_file, "w"))){
-	fprintf(stderr, "ERROR in genbimol: could not open file \"%s\"for writing.\n", current_file);exit(0);
+	fprintf(stderr, "ERROR in genbimol: could not open file \"%s\" for writing.\n", current_file);exit(0);
       }
     }
   }
@@ -727,7 +727,7 @@ unsigned long genbitrimol(int n, int m, char *outfile, int open, const char proc
     for(j=m;j<=4*m;j++){//open files (total degree at least m)
       sprintf(current_file, "tempfiles/__tmp%d_%d_0", inv, j); 
       if(!(fd1[inv][j-m]=fopen(current_file, "w"))){
-	fprintf(stderr, "ERROR in genbitrimol: could not open file \"%s\"for writing.\n", current_file);exit(0);
+	fprintf(stderr, "ERROR in genbitrimol: could not open file \"%s\" for writing.\n", current_file);exit(0);
       }
     }
   }
@@ -926,10 +926,12 @@ unsigned long genzeroonetritrimol(int n, int m, char *outfile, int open, const c
   bool V[Vlen];
   int clen=Vlen/6;
   char out[clen+3];
-  int fnum=(m+1)*(m+1);//equiv classes
-  FILE *fd, *fp[fnum][3*m+1];
+  int totl=3*m+1;//total left molecularity 0--3*m
+  int totr=3*m+1;//total right molecularity 0--3*m
+  int degl,degr;
+  FILE *fd, *fp[totl][totr];
   FILE *fptemp[4]; // for temporary shortg processes
-  FILE *fd1[fnum][3*m+1];
+  FILE *fd1[totl][totr];
   int oldest_short=0;
   int fptempflag=0;
   char *ptn, *str;
@@ -940,11 +942,10 @@ unsigned long genzeroonetritrimol(int n, int m, char *outfile, int open, const c
   //Transpose of irreversible stoich. mat.
   int **Gt=imatrix(0,m0-1,0,n-1); 
   int xc[m];
-  //Total degree between m and 4*m
-  int num2l, num2r, inv, totdeg;
+  int inv;
   char current_file[30];
-  int fsz[fnum][3*m+1];
-  int part[fnum][3*m+1];
+  int fsz[totl][totr];
+  int part[totl][totr];
   int maxproc=4;//maximum shortg processes to run simultaneously
   FILE *fp0;
   char path[1024];
@@ -962,8 +963,8 @@ unsigned long genzeroonetritrimol(int n, int m, char *outfile, int open, const c
   }
 
   //initialise
-  for(i=0;i<fnum;i++){
-    for(j=0;j<=3*m;j++){
+  for(i=0;i<totl;i++){
+    for(j=0;j<totr;j++){
       fsz[i][j]=0;part[i][j]=0;
     }
   }
@@ -1010,12 +1011,12 @@ unsigned long genzeroonetritrimol(int n, int m, char *outfile, int open, const c
   //clear files and then open lots of temporary files
   system("rm -f tempfiles/__tmp*");
 
-  for(inv=0;inv<fnum;inv++){//each value of the invariant
-    //    fprintf(stderr, "(reverse): %d/%d\n", fnum-inv, fnum);
-    for(j=m;j<=4*m;j++){//open files (total degree at least m)
+  for(inv=0;inv<totl;inv++){//each value of the invariant
+    //    fprintf(stderr, "(reverse): %d/%d\n", totl-inv, totl);
+    for(j=0;j<totr;j++){//open files (total degree at least m)
       sprintf(current_file, "tempfiles/__tmp%d_%d_0", inv, j); 
-      if(!(fd1[inv][j-m]=fopen(current_file, "w"))){
-	fprintf(stderr, "ERROR in genzeroonetritrimol: could not open file \"%s\"for writing.\n", current_file);exit(0);
+      if(!(fd1[inv][j]=fopen(current_file, "w"))){
+	fprintf(stderr, "ERROR in genzeroonetritrimol: could not open file \"%s\" for writing.\n", current_file);exit(0);
       }
     }
   }
@@ -1043,25 +1044,24 @@ unsigned long genzeroonetritrimol(int n, int m, char *outfile, int open, const c
       if((!strstr(procstr, "connect") || connected(L, R, n, m0)) && (!strstr(procstr, "genuine") || !has_triv_spec(L, R, n, m0)) && (!strstr(procstr, "DN") || !hasposimvec(Gt,m,n)) ){
 
 	//compute the invariants
-	num2l=0;num2r=0;//# of times stoichiometry "2" appears on LHS and RHS
-	totdeg=0;//total degree
+	degl=0;
+	degr=0;
 	for(i=0;i<m;i++){
-	  totdeg+=H1deg[Rvec[xc[i]][0]];
-   	  totdeg+=H1deg[Rvec[xc[i]][1]];
+	  degl+=H1deg[Rvec[xc[i]][0]];
+   	  degr+=H1deg[Rvec[xc[i]][1]];
 	}
-	inv=(m+1)*num2r+num2l;
 	//End of compute invariants
 
 
 	CRNPN2(L,R,n,m0,V,Vlen);
 	amtodig(V,clen,out);
-	fprintf(fd1[inv][totdeg-m], "%s\n", out);
-	(fsz[inv][totdeg-m])++;
+	fprintf(fd1[degl][degr], "%s\n", out);
+	(fsz[degl][degr])++;
 
 	//If (part)-file got large, then (i) wait from a free process; 
 	//(ii) shut (part)-file; (iii) short the (part)-file; open next part;
-	if(fsz[inv][totdeg-m]>2000000){
-	  fsz[inv][totdeg-m]=0;
+	if(fsz[degl][degr]>2000000){
+	  fsz[degl][degr]=0;
 	  /* fprintf(stderr, "fptempflag=%d\n", fptempflag); */
 
 	  //wait
@@ -1074,15 +1074,15 @@ unsigned long genzeroonetritrimol(int n, int m, char *outfile, int open, const c
 	    fptempflag--;
 	  }
 
-	  sprintf(current_file, "tempfiles/__tmp%d_%d", inv, totdeg);
-	  fclose(fd1[inv][totdeg-m]);
+	  sprintf(current_file, "tempfiles/__tmp%d_%d", degl, degr);
+	  fclose(fd1[degl][degr]);
 
-	  sprintf(systemcom, "nauty-shortg -q -f%s %s_%d", ptn, current_file, part[inv][totdeg-m]);
+	  sprintf(systemcom, "nauty-shortg -q -f%s %s_%d", ptn, current_file, part[degl][degr]);
 	  if(debug){fprintf(stderr, "%s\n", systemcom);}
 	  if(!(fptemp[oldest_short]=popen(systemcom, "r"))){
 	    perror("couldn't open pipe.\n");exit(0);
 	  }
-	  (part[inv][totdeg-m])++;
+	  (part[degl][degr])++;
 
 	  if(oldest_short<maxproc-1)//increment available counter for temporary shortg processes
 	    oldest_short++;
@@ -1090,13 +1090,12 @@ unsigned long genzeroonetritrimol(int n, int m, char *outfile, int open, const c
 	    oldest_short=0;
 	  if(debug){fprintf(stderr, "oldest_short = %d\n", oldest_short);}
 
-	  //fptemp[oldest_short]=shortfilepart(current_file, ptn, &(part[inv][totdeg-m]));
 	  fptempflag++;
 
 	  // open next temporary file
-	  sprintf(systemcom, "%s_%d", current_file, part[inv][totdeg-m]);
+	  sprintf(systemcom, "%s_%d", current_file, part[degl][degr]);
 	  if(debug){fprintf(stderr, "opening %s\n", systemcom);}
-	  if(!(fd1[inv][totdeg-m]=fopen(systemcom, "w"))){
+	  if(!(fd1[degl][degr]=fopen(systemcom, "w"))){
 	    fprintf(stderr, "ERROR in shortfile: could not open file \"%s\" for writing.\n", systemcom);exit(0);
 	  }
 
@@ -1126,23 +1125,21 @@ unsigned long genzeroonetritrimol(int n, int m, char *outfile, int open, const c
 
   // Final merge and short all the files
   if(debug){fprintf(stderr, "merge and short all files\n");}
-  for(i=0;i<fnum;i++){
-    for(j=m;j<=4*m;j++){
-      fclose(fd1[i][j-m]);
+  for(i=0;i<totl;i++){
+    for(j=0;j<totr;j++){
+      fclose(fd1[i][j]);
 
       //wait
       while(1){if(numshortg()<maxproc){break;}sleep(1);}
-
       sprintf(current_file, "tempfiles/__tmp%d_%d", i, j);
-      fp[i][j-m]=mergeandshort(current_file, ptn, part[i][j-m]+1);
+      fp[i][j]=mergeandshort(current_file, ptn, part[i][j]+1);
     }
   }
-      
   //close the final streams and join the files
   if(debug){fprintf(stderr, "Joining and sorting files...\n");}
-  for(i=0;i<fnum;i++){//each value of the invariant
-    for(j=m;j<=4*m;j++){
-      pclose(fp[i][j-m]);
+  for(i=0;i<totl;i++){//each value of the invariant
+    for(j=0;j<totr;j++){
+      pclose(fp[i][j]);
       sprintf(current_file, "tempfiles/__tmp%d_%d", i, j);  
       sprintf(systemcom, "cat %s >> tempfiles/_tmp2 && rm %s", current_file, current_file);
       system(systemcom);
@@ -1183,302 +1180,6 @@ unsigned long genzeroonetritrimol(int n, int m, char *outfile, int open, const c
   return totnetworks;
 }
 
-// Experimental, and not checked
-// Generate CRNs with at most bimolecular reactant complexes and 
-// at most tetramolecular product complexes, on n species and m reactions
-// the openswtch decides whether we allow 0 --> X, X --> 0, 
-// type reactions or not. 
-// open means create only fully open CRNs
-// creates lots of temporary files: there must be a directory \"tempfiles\"
-unsigned long genbitetramol(int n, int m, char *outfile, int open, const char procstr[], int debug){
-  int i,j,k1,k2,tot=0,tot1=0,flag=1;
-  //long milcount=0;
-  long alltot=0;
-  int m0=m;
-  int r1=n+m0;
-  int layers=3;
-  int r2=layers*layers*r1*r1;//minimum dimension of V: l^2*(n+m)*(n+m)
-  int N1=1+n+n*(n+1)/2;
-  int N2=N1 + n*(n+1)*(n+2)/6 + n*(n+1)*(n+2)*(n+3)/24; //total=n+4 choose 4
-  int Rvec[N1*N2][2];//all reactions (LHS index, RHS index, overcount)
-  int **H1=imatrix(0, N1-1, 0, n-1);//at most bi complexes
-  int **H2=imatrix(0, N2-1, 0, n-1);//at most tetra complexes
-  int H1deg[N1];
-  int H2deg[N2];
-  int rem = r2%6;
-  int Vlen=(rem==0)?r2:r2+6-rem;
-  bool *V;
-  int clen=Vlen/6;
-  char out[clen+3];
-  int fnum=(m+1)*(m+1);//equiv classes
-  FILE *fd, *fp[fnum][3*m+1];
-  FILE *fptemp[4]; // for temporary shortg processes
-  FILE *fd1[fnum][3*m+1];
-  int oldest_short=0;
-  int fptempflag=0;
-  char *ptn, *str;
-  char **array;
-  char systemcom[1024];
-  int **L=imatrix(0,n-1,0,m0-1);
-  int **R=imatrix(0,n-1,0,m0-1);
-  //Transpose of irreversible stoich. mat.
-  int **Gt=imatrix(0,m0-1,0,n-1); 
-  int xc[m];
-  //Total degree between m and 4*m
-  int num2l, num2r, inv, totdeg;
-  char current_file[30];
-  int fsz[fnum][3*m+1];
-  int part[fnum][3*m+1];
-  int maxproc=4;//maximum shortg processes to run simultaneously
-  FILE *fp0;
-  char path[1024];
-  unsigned long totnetworks;
-  int l;
-
-  //clear file
-  if(!(fd=fopen("tempfiles/_tmp2", "w"))){
-    fprintf(stderr, "ERROR in genbitetramol: could not open file \"tempfiles/_tmp2\" for writing.\n");exit(0);
-  }
-  fclose(fd);
-
-  if(r1>30){
-    fprintf(stderr, "ERROR in genbitetramol: not sure we can handle the size. Exiting.\n");
-    exit(0);
-  }
-
-  //initialise
-  for(i=0;i<fnum;i++){
-    for(j=0;j<=3*m;j++){
-      fsz[i][j]=0;part[i][j]=0;
-    }
-  }
-  k1=genallbicomplexes(n, N1, H1);
-  k2=genalltetracomplexes(n, N2, H2);
-  if(debug){fprintf(stderr, "total bimol/tetramol complexes = %d, %d\n", k1,k2);}
-
-  for(i=0;i<k1;i++)
-    H1deg[i]=rowsum(H1,k1,n,i);
-  for(i=0;i<k2;i++)
-    H2deg[i]=rowsum(H2,k2,n,i);
-
-  //generate the reactions as index-pairs
-  for(i=0;i<k1;i++){
-    for(j=0;j<k2;j++){
-      if(j!=i && (!open || (i!=0 && j!=0) || (i==0 && j>n) || (j==0 && i>n))){
-      	Rvec[tot][0]=i;Rvec[tot][1]=j;
-      	tot++;
-      }
-    }
-  }
-  if(debug){fprintf(stderr, "total reacs = %d\n", tot);}
-  if(m>tot){
-    fprintf(stderr, "Cannot choose %d reactions from %d. Exiting.\n", m, tot);
-    exit(0);
-  }
-
-  ptn=(char *)malloc((size_t) ((2*r1+1)*sizeof(char)));
-  for(i=0;i<n;i++)
-    ptn[i]='0';
-  for(i=n;i<r1;i++)
-    ptn[i]='1';
-  for(i=r1;i<r1+n;i++)
-    ptn[i]='2';
-  for(i=r1+n;i<2*r1;i++)
-    ptn[i]='3';
-  ptn[i]=0;
-
-  //To store the di6 string
-  //Set the initial and final values of the graph string
-  //These do not change as long as the dimension is constant
-
-  out[0]=38;
-  out[1]=63+layers*r1;
-  out[2+clen]=0;
-
-  //clear files and then open lots of temporary files
-  system("rm -f tempfiles/__tmp*");
-
-  for(inv=0;inv<fnum;inv++){//each value of the invariant
-    //    fprintf(stderr, "(reverse): %d/%d\n", fnum-inv, fnum);
-    for(j=m;j<=4*m;j++){//open files (total degree at least m)
-      sprintf(current_file, "tempfiles/__tmp%d_%d_0", inv, j); 
-      if(!(fd1[inv][j-m]=fopen(current_file, "w"))){
-	fprintf(stderr, "ERROR in genbitetramol: could not open file \"%s\"for writing.\n", current_file);exit(0);
-      }
-    }
-  }
-
-  flag=1;
-  firstcomb(xc, tot, m);
-  while(flag){
-    //construct left and right complexes
-    for(i=0;i<m;i++){//Each complex pair
-      for(j=0;j<n;j++){//Each species
-	L[j][i]=H1[Rvec[xc[i]][0]][j];
-	R[j][i]=H2[Rvec[xc[i]][1]][j];
-	Gt[i][j]=R[j][i]-L[j][i];//transpose of stoichiometric matrix
-      }
-    }
-
-    if(goodorder(L,R,n,m0)){//degrees in ascending order
-      alltot++;
-      if(alltot==1000000){//some sense of progress
-	fprintf(stderr, "*");
-	alltot=0;
-      }
-
-      //processing
-      if((!strstr(procstr, "connect") || connected(L, R, n, m0)) && (!strstr(procstr, "genuine") || !has_triv_spec(L, R, n, m0)) && (!strstr(procstr, "DN") || !hasposimvec(Gt,m,n)) ){
-
-	//compute the invariants
-	num2l=0;num2r=0;//# of times stoichiometry "2" appears on LHS and RHS
-	totdeg=0;//total degree
-	for(i=0;i<m;i++){
-	  if(Rvec[xc[i]][0]>n && Rvec[xc[i]][0]<=2*n){//LH complex = 2X_i
-	    num2l++;
-	  }
-	  totdeg+=H1deg[Rvec[xc[i]][0]];
-   
-	  if(Rvec[xc[i]][1]>n && Rvec[xc[i]][1]<=2*n){//RH complex = 2X_i
-	    num2r++;
-	  }
-	  totdeg+=H2deg[Rvec[xc[i]][1]];
-	}
-	inv=(m+1)*num2r+num2l;
-	//End of compute invariants
-
-	V=CRNPN3(L,R,n,m0,layers,&l);
-	amtodig(V,clen,out);
-	free((char *)V);
-
-	fprintf(fd1[inv][totdeg-m], "%s\n", out);
-	(fsz[inv][totdeg-m])++;
-
-	//If (part)-file got large, then (i) wait from a free process; 
-	//(ii) shut (part)-file; (iii) short the (part)-file; open next part;
-	if(fsz[inv][totdeg-m]>2000000){
-	  fsz[inv][totdeg-m]=0;
-	  /* fprintf(stderr, "fptempflag=%d\n", fptempflag); */
-
-	  //wait
-	  while(1){if(numshortg()<maxproc){break;}sleep(1);}
-
-	  //finish last temporary shortg
-	  if(fptempflag==maxproc){// all running, close one
-	    pclose(fptemp[oldest_short]);
-	    //fptemp[oldest_short]=NULL;
-	    fptempflag--;
-	  }
-
-	  sprintf(current_file, "tempfiles/__tmp%d_%d", inv, totdeg);
-	  fclose(fd1[inv][totdeg-m]);
-
-	  sprintf(systemcom, "nauty-shortg -q -f%s %s_%d", ptn, current_file, part[inv][totdeg-m]);
-	  if(debug){fprintf(stderr, "%s\n", systemcom);}
-	  if(!(fptemp[oldest_short]=popen(systemcom, "r"))){
-	    perror("couldn't open pipe.\n");exit(0);
-	  }
-	  (part[inv][totdeg-m])++;
-
-	  if(oldest_short<maxproc-1)//increment available counter for temporary shortg processes
-	    oldest_short++;
-	  else//used all four
-	    oldest_short=0;
-	  if(debug){fprintf(stderr, "oldest_short = %d\n", oldest_short);}
-
-	  //fptemp[oldest_short]=shortfilepart(current_file, ptn, &(part[inv][totdeg-m]));
-	  fptempflag++;
-
-	  // open next temporary file
-	  sprintf(systemcom, "%s_%d", current_file, part[inv][totdeg-m]);
-	  if(debug){fprintf(stderr, "opening %s\n", systemcom);}
-	  if(!(fd1[inv][totdeg-m]=fopen(systemcom, "w"))){
-	    fprintf(stderr, "ERROR in shortfile: could not open file \"%s\" for writing.\n", systemcom);exit(0);
-	  }
-
-	}//End of file got too large
-
-	//fprintvec(fd, V, 4*r1*r1);
-	//milcount++;
-      }//End of check for special conditions
-
-    }//End of "if goodorder..."
-
-    flag=nextcomb(xc, tot, m);
-  }
-
-  fprintf(stderr, "\n");
-  //close temporary shortgs
-  if(debug){fprintf(stderr, "closing temporary shortgs\n");
-    fprintf(stderr, "number of open shortgs=%d\n", fptempflag);}
-  while(fptempflag){
-    pclose(fptemp[oldest_short]);
-    if(!oldest_short)
-      oldest_short=maxproc-1;
-    else
-      oldest_short--;
-    fptempflag--;
-  }
-
-  // Final merge and short all the files
-  if(debug){fprintf(stderr, "merge and short all files\n");}
-  for(i=0;i<fnum;i++){
-    for(j=m;j<=4*m;j++){
-      fclose(fd1[i][j-m]);
-
-      //wait
-      while(1){if(numshortg()<maxproc){break;}sleep(1);}
-
-      sprintf(current_file, "tempfiles/__tmp%d_%d", i, j);
-      fp[i][j-m]=mergeandshort(current_file, ptn, part[i][j-m]+1);
-    }
-  }
-      
-  //close the final streams and join the files
-  if(debug){fprintf(stderr, "Joining and sorting files...\n");}
-  for(i=0;i<fnum;i++){//each value of the invariant
-    for(j=m;j<=4*m;j++){
-      pclose(fp[i][j-m]);
-      sprintf(current_file, "tempfiles/__tmp%d_%d", i, j);  
-      sprintf(systemcom, "cat %s >> tempfiles/_tmp2 && rm %s", current_file, current_file);
-      system(systemcom);
-    }
-  }
-
-  sprintf(systemcom, "LC_COLLATE=C sort tempfiles/_tmp2 > %s && rm tempfiles/_tmp2", outfile);
-  if(debug){fprintf(stderr, "%s\n", systemcom);}
-  system(systemcom);
-
-  //risky in terms of memory?
-  if(debug==2){
-    array=genarraydat(outfile, &tot1);
-    for(i=0;i<tot1;i++){
-      str=di6toreacstr(array[i], n,m,0);
-      fprintf(stderr, "********\n%s\n", str);
-      free(str);
-    }
-    freearraydat(array, tot1);
-  }
-
-  free(ptn);
-  free_imatrix(H1,0,N1-1,0,n-1);
-  free_imatrix(H2,0,N2-1,0,n-1);
-  free_imatrix(L,0,n-1,0,m0-1);
-  free_imatrix(R,0,n-1,0,m0-1);
-  free_imatrix(Gt,0,m0-1,0,n-1);
-
-  sprintf(systemcom, "wc -l %s", outfile);
-  if(debug){fprintf(stderr, "%s\n", systemcom);}
-  if(!(fp0=popen(systemcom, "r"))){
-    perror("couldn't open pipe.\n");exit(0);
-  }
-  fgets(path, sizeof(path), fp0);
-  totnetworks=atol(path);
-  pclose(fp0);
-
-  printf("Generated %ld networks, and stored them in di6 format in %s.\n", totnetworks, outfile);
-  return totnetworks;
-}
 
 //n+k choose k
 int nkchoosek(int n, int k){
@@ -1519,10 +1220,12 @@ unsigned long genbimultimol(int n, int m, char *outfile, int open, const char pr
   bool *V;
   int clen=Vlen/6;
   char out[clen+3];
-  int fnum=(m+1)*(m+1);//equiv classes
-  FILE *fd, *fp[fnum][3*m+1];
+  int fnum=m*(1+molecularity/2)+1;//total number of twos
+//(m+1)*(m*molecularity/2+1)+1;//number of 2s on each side
+  int totmol=m*(2+molecularity)+1;//total molecularity
+  FILE *fd, *fp[fnum][totmol];
   FILE *fptemp[4]; // for temporary shortg processes
-  FILE *fd1[fnum][3*m+1];
+  FILE *fd1[fnum][totmol];
   int oldest_short=0;
   int fptempflag=0;
   char *ptn, *str;
@@ -1533,11 +1236,10 @@ unsigned long genbimultimol(int n, int m, char *outfile, int open, const char pr
   //Transpose of irreversible stoich. mat.
   int **Gt=imatrix(0,m0-1,0,n-1); 
   int xc[m];
-  //Total degree between m and 4*m
   int num2l, num2r, inv, totdeg;
   char current_file[30];
-  int fsz[fnum][3*m+1];
-  int part[fnum][3*m+1];
+  int fsz[fnum][totmol];
+  int part[fnum][totmol];
   int maxproc=4;//maximum shortg processes to run simultaneously
   FILE *fp0;
   char path[1024];
@@ -1557,7 +1259,7 @@ unsigned long genbimultimol(int n, int m, char *outfile, int open, const char pr
 
   //initialise
   for(i=0;i<fnum;i++){
-    for(j=0;j<=3*m;j++){
+    for(j=0;j<totmol;j++){
       fsz[i][j]=0;part[i][j]=0;
     }
   }
@@ -1569,7 +1271,6 @@ unsigned long genbimultimol(int n, int m, char *outfile, int open, const char pr
     H1deg[i]=rowsum(H1,k1,n,i);
   for(i=0;i<k2;i++)
     H2deg[i]=rowsum(H2,k2,n,i);
-
   //generate the reactions as index-pairs
   for(i=0;i<k1;i++){
     for(j=0;j<k2;j++){
@@ -1608,14 +1309,14 @@ unsigned long genbimultimol(int n, int m, char *outfile, int open, const char pr
   system("rm -f tempfiles/__tmp*");
 
   for(inv=0;inv<fnum;inv++){//each value of the invariant
-    //    fprintf(stderr, "(reverse): %d/%d\n", fnum-inv, fnum);
-    for(j=m;j<=4*m;j++){//open files (total degree at least m)
+    for(j=0;j<totmol;j++){//open files (total degree at least m)
       sprintf(current_file, "tempfiles/__tmp%d_%d_0", inv, j); 
-      if(!(fd1[inv][j-m]=fopen(current_file, "w"))){
-	fprintf(stderr, "ERROR in genbimultimol: could not open file \"%s\"for writing.\n", current_file);exit(0);
+      if(!(fd1[inv][j]=fopen(current_file, "w"))){
+	fprintf(stderr, "ERROR in genbimultimol: could not open file \"%s\" for writing.\n", current_file);exit(0);
       }
     }
   }
+
 
   flag=1;
   firstcomb(xc, tot, m);
@@ -1640,33 +1341,31 @@ unsigned long genbimultimol(int n, int m, char *outfile, int open, const char pr
       if((!strstr(procstr, "connect") || connected(L, R, n, m0)) && (!strstr(procstr, "genuine") || !has_triv_spec(L, R, n, m0)) && (!strstr(procstr, "DN") || !hasposimvec(Gt,m,n)) ){
 
 	//compute the invariants
-	num2l=0;num2r=0;//# of times stoichiometry "2" appears on LHS and RHS
+	num2l=0;num2r=0;//# of times stoichiometry "2" appears on both sides
 	totdeg=0;//total degree
 	for(i=0;i<m;i++){
-	  if(Rvec[xc[i]][0]>n && Rvec[xc[i]][0]<=2*n){//LH complex = 2X_i
-	    num2l++;
+	  for(j=0;j<n;j++){
+	    if(L[j][i]==2)
+	      num2l++;
+	    if(R[j][i]==2)
+	      num2r++;
 	  }
 	  totdeg+=H1deg[Rvec[xc[i]][0]];
-   
-	  if(Rvec[xc[i]][1]>n && Rvec[xc[i]][1]<=2*n){//RH complex = 2X_i
-	    num2r++;
-	  }
 	  totdeg+=H2deg[Rvec[xc[i]][1]];
 	}
-	inv=(m+1)*num2r+num2l;
+	inv=num2l+num2r;
 	//End of compute invariants
-
 	V=CRNPN3(L,R,n,m0,layers,&l);
 	amtodig(V,clen,out);
 	free((char *)V);
 
-	fprintf(fd1[inv][totdeg-m], "%s\n", out);
-	(fsz[inv][totdeg-m])++;
+	fprintf(fd1[inv][totdeg], "%s\n", out);
+	(fsz[inv][totdeg])++;
 
 	//If (part)-file got large, then (i) wait from a free process; 
 	//(ii) shut (part)-file; (iii) short the (part)-file; open next part;
-	if(fsz[inv][totdeg-m]>2000000){
-	  fsz[inv][totdeg-m]=0;
+	if(fsz[inv][totdeg]>2000000){
+	  fsz[inv][totdeg]=0;
 	  /* fprintf(stderr, "fptempflag=%d\n", fptempflag); */
 
 	  //wait
@@ -1680,14 +1379,14 @@ unsigned long genbimultimol(int n, int m, char *outfile, int open, const char pr
 	  }
 
 	  sprintf(current_file, "tempfiles/__tmp%d_%d", inv, totdeg);
-	  fclose(fd1[inv][totdeg-m]);
+	  fclose(fd1[inv][totdeg]);
 
-	  sprintf(systemcom, "nauty-shortg -q -f%s %s_%d", ptn, current_file, part[inv][totdeg-m]);
+	  sprintf(systemcom, "nauty-shortg -q -f%s %s_%d", ptn, current_file, part[inv][totdeg]);
 	  if(debug){fprintf(stderr, "%s\n", systemcom);}
 	  if(!(fptemp[oldest_short]=popen(systemcom, "r"))){
 	    perror("couldn't open pipe.\n");exit(0);
 	  }
-	  (part[inv][totdeg-m])++;
+	  (part[inv][totdeg])++;
 
 	  if(oldest_short<maxproc-1)//increment available counter for temporary shortg processes
 	    oldest_short++;
@@ -1699,9 +1398,9 @@ unsigned long genbimultimol(int n, int m, char *outfile, int open, const char pr
 	  fptempflag++;
 
 	  // open next temporary file
-	  sprintf(systemcom, "%s_%d", current_file, part[inv][totdeg-m]);
+	  sprintf(systemcom, "%s_%d", current_file, part[inv][totdeg]);
 	  if(debug){fprintf(stderr, "opening %s\n", systemcom);}
-	  if(!(fd1[inv][totdeg-m]=fopen(systemcom, "w"))){
+	  if(!(fd1[inv][totdeg]=fopen(systemcom, "w"))){
 	    fprintf(stderr, "ERROR in shortfile: could not open file \"%s\" for writing.\n", systemcom);exit(0);
 	  }
 
@@ -1732,22 +1431,22 @@ unsigned long genbimultimol(int n, int m, char *outfile, int open, const char pr
   // Final merge and short all the files
   if(debug){fprintf(stderr, "merge and short all files\n");}
   for(i=0;i<fnum;i++){
-    for(j=m;j<=4*m;j++){
-      fclose(fd1[i][j-m]);
+    for(j=0;j<totmol;j++){
+      fclose(fd1[i][j]);
 
       //wait
       while(1){if(numshortg()<maxproc){break;}sleep(1);}
 
       sprintf(current_file, "tempfiles/__tmp%d_%d", i, j);
-      fp[i][j-m]=mergeandshort(current_file, ptn, part[i][j-m]+1);
+      fp[i][j]=mergeandshort(current_file, ptn, part[i][j]+1);
     }
   }
       
   //close the final streams and join the files
   if(debug){fprintf(stderr, "Joining and sorting files...\n");}
   for(i=0;i<fnum;i++){//each value of the invariant
-    for(j=m;j<=4*m;j++){
-      pclose(fp[i][j-m]);
+    for(j=0;j<totmol;j++){
+      pclose(fp[i][j]);
       sprintf(current_file, "tempfiles/__tmp%d_%d", i, j);  
       sprintf(systemcom, "cat %s >> tempfiles/_tmp2 && rm %s", current_file, current_file);
       system(systemcom);
@@ -1796,7 +1495,7 @@ unsigned long genbimultimol(int n, int m, char *outfile, int open, const char pr
 // ("molecularity" = k<=7 or update layers), 
 // on n species and m reactions
 // creates lots of temporary files: there must be a directory \"tempfiles\"
-unsigned long genmultisrc(int n, int m, char *outfile, int molecularity, int debug){
+unsigned long genmultisrc(int n, int m, const char outfile[], int molecularity, int debug){
   int i,j,k1,tot=0,tot1=0,flag=1;
   //long milcount=0;
   long alltot=0;
@@ -1815,10 +1514,11 @@ unsigned long genmultisrc(int n, int m, char *outfile, int molecularity, int deb
   bool *V;
   int clen=Vlen/6;
   char out[clen+3];
-  int fnum=(m+1)*(m+1);//equiv classes
-  FILE *fd, *fp[fnum][3*m+1];
+  int fnum=m*molecularity/2+1;//number of 2s on LHS
+  int totmol=m*molecularity+1;//total molecularity
+  FILE *fd, *fp[fnum][totmol];
   FILE *fptemp[4]; // for temporary shortg processes
-  FILE *fd1[fnum][3*m+1];
+  FILE *fd1[fnum][totmol];
   int oldest_short=0;
   int fptempflag=0;
   char *ptn, *str;
@@ -1830,10 +1530,10 @@ unsigned long genmultisrc(int n, int m, char *outfile, int molecularity, int deb
   int **Gt=imatrix(0,m0-1,0,n-1); 
   int xc[m];
   //Total degree between m and 4*m
-  int num2l, num2r, inv, totdeg;
+  int num2l, inv, totdeg;
   char current_file[30];
-  int fsz[fnum][3*m+1];
-  int part[fnum][3*m+1];
+  int fsz[fnum][totmol];
+  int part[fnum][totmol];
   int maxproc=4;//maximum shortg processes to run simultaneously
   FILE *fp0;
   char path[1024];
@@ -1853,7 +1553,7 @@ unsigned long genmultisrc(int n, int m, char *outfile, int molecularity, int deb
 
   //initialise
   for(i=0;i<fnum;i++){
-    for(j=0;j<=3*m;j++){
+    for(j=0;j<totmol;j++){
       fsz[i][j]=0;part[i][j]=0;
     }
   }
@@ -1891,13 +1591,13 @@ unsigned long genmultisrc(int n, int m, char *outfile, int molecularity, int deb
 
   //clear files and then open lots of temporary files
   system("rm -f tempfiles/__tmp*");
-
+  //fprintf(stderr, "trying to open %d files.\n", fnum*(3*m+1));
   for(inv=0;inv<fnum;inv++){//each value of the invariant
     //    fprintf(stderr, "(reverse): %d/%d\n", fnum-inv, fnum);
-    for(j=m;j<=4*m;j++){//open files (total degree at least m)
+    for(j=0;j<totmol;j++){//open files (total degree at least m)
       sprintf(current_file, "tempfiles/__tmp%d_%d_0", inv, j); 
-      if(!(fd1[inv][j-m]=fopen(current_file, "w"))){
-	fprintf(stderr, "ERROR in genmultisrc: could not open file \"%s\"for writing.\n", current_file);exit(0);
+      if(!(fd1[inv][j]=fopen(current_file, "w"))){
+	fprintf(stderr, "ERROR in genmultisrc: could not open file \"%s\" for writing.\n", current_file);exit(0);
       }
     }
   }
@@ -1924,20 +1624,17 @@ unsigned long genmultisrc(int n, int m, char *outfile, int molecularity, int deb
       }
 
       //compute the invariants
-      num2l=0;num2r=0;//# of times stoichiometry "2" appears on LHS and RHS
+      num2l=0;//# of times stoichiometry "2" appears on LHS
       totdeg=0;//total degree
       for(i=0;i<m;i++){
-	if(Rvec[xc[i]][0]>n && Rvec[xc[i]][0]<=2*n){//LH complex = 2X_i
-	  num2l++;
+	for(j=0;j<n;j++){
+	  if(L[j][i]==2)
+	    num2l++;
 	}
 	totdeg+=H1deg[Rvec[xc[i]][0]];
-   
-	if(Rvec[xc[i]][1]>n && Rvec[xc[i]][1]<=2*n){//RH complex = 2X_i
-	  num2r++;
-	}
-	totdeg+=H1deg[Rvec[xc[i]][1]];
+   	totdeg+=H1deg[Rvec[xc[i]][1]];
       }
-      inv=(m+1)*num2r+num2l;
+      inv=num2l;
       //End of compute invariants
 
       V=CRNPN3(L,R,n,m0,layers,&l);
@@ -2014,22 +1711,22 @@ unsigned long genmultisrc(int n, int m, char *outfile, int molecularity, int deb
   // Final merge and short all the files
   if(debug){fprintf(stderr, "merge and short all files\n");}
   for(i=0;i<fnum;i++){
-    for(j=m;j<=4*m;j++){
-      fclose(fd1[i][j-m]);
+    for(j=0;j<totmol;j++){
+      fclose(fd1[i][j]);
 
       //wait
       while(1){if(numshortg()<maxproc){break;}sleep(1);}
 
       sprintf(current_file, "tempfiles/__tmp%d_%d", i, j);
-      fp[i][j-m]=mergeandshort(current_file, ptn, part[i][j-m]+1);
+      fp[i][j]=mergeandshort(current_file, ptn, part[i][j]+1);
     }
   }
       
   //close the final streams and join the files
   if(debug){fprintf(stderr, "Joining and sorting files...\n");}
   for(i=0;i<fnum;i++){//each value of the invariant
-    for(j=m;j<=4*m;j++){
-      pclose(fp[i][j-m]);
+    for(j=0;j<totmol;j++){
+      pclose(fp[i][j]);
       sprintf(current_file, "tempfiles/__tmp%d_%d", i, j);  
       sprintf(systemcom, "cat %s >> tempfiles/_tmp2 && rm %s", current_file, current_file);
       system(systemcom);
@@ -2842,7 +2539,11 @@ int CRNwithsources(const char *filein, const char *filesources, const char *file
 
   //generate source arrays
   sourcearray=genarraydat("tempfiles/_sourcelistlabelled", &numsources);
-
+  if(numsources==0){
+    fprintf(stderr, "No sources found. EXITING.\n");exit(0);
+  }
+  //Assumes all the source CRNs have the same number of layers
+  numl=numlayers(sourcearray[0], n, m);//get the number of layers
 
   //generate source CRNs for CRNs in filein
   if(!(fdin = fopen(filein, "r"))){
@@ -2854,7 +2555,8 @@ int CRNwithsources(const char *filein, const char *filesources, const char *file
     exit(0);
   }
   while(getline0(fdin, oneline, 1024) > 0){
-    numl=numlayers(oneline, n, m);//maintain the layers
+    //    numl=numlayers(oneline, n, m);//maintain the layers (bad idea?)
+    //use same number of layers as sources, if possible
     str=cmplxCRN(oneline, n, m, numl, 2, &totcmplx);
     fprintf(fdout, "%s\n", str);
     free((char*)str);

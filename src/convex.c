@@ -580,8 +580,10 @@ void intkervec(int **imat, int nlen, int mlen, int intvec[], bool q){
   return;
 }
 
-// A basis of minimal vectors for ker M.
-// "minimal" means with as many zeros as possible, corresonding
+// A basis of vectors for ker M. The product of the sums of positive entries
+// is as small as possible (best possible Bezout bound after clearing
+// denominators). The algorithm does *not* necessarily pick the vectors
+// with minimal support, because of the way qsort2 works
 int **minkerbasis(int **M, int n, int m, int *tot, int *rk, int *deg, int debug){
   int kerdim;//dimension of kernel
   int **basis=NULL;
@@ -590,7 +592,7 @@ int **minkerbasis(int **M, int n, int m, int *tot, int *rk, int *deg, int debug)
   int **faces=NULL;
   int **redSi;
   int flag;
-  int i, k0;
+  int i, j, k0;
   int *alldegs;
   int xc[n],yc[m],tmpvec[m],tmpvec1[m],tmpvec2[m];
 
@@ -659,20 +661,50 @@ int **minkerbasis(int **M, int n, int m, int *tot, int *rk, int *deg, int debug)
     exit(0);
   }
 
-  //Extract the best "kerdim" in terms of Bezout degree
-  int inds[tottmp];
-  for(i=0;i<tottmp;i++)
-    inds[i]=i;
-  qsort2(alldegs,inds,0,tottmp-1);
+  //Don't sort by degree
+  /* int inds[tottmp]; */
+  /* for(i=0;i<tottmp;i++) */
+  /*   inds[i]=i; */
+  /* qsort2(alldegs,inds,0,tottmp-1); */
+
+  //get combinations of kerdim - check linear independence and degree
+
+  int **W=imatrix(0, kerdim-1, 0, m-1);
+  int wc[kerdim],wc1[kerdim];
+  int degtmp;
+  int mindeg=100000;//arbitrary
+  firstcomb(wc, tottmp, kerdim);flag=1;
+  while(flag==1){
+    //fprintf(stderr, "wc\n");printvec(wc,kerdim);
+    for(i=0;i<kerdim;i++){
+      for(j=0;j<m;j++){
+	W[i][j]=basistmp[wc[i]][j];
+      }
+    }
+    //printmat(W,kerdim,m);
+    if(matrank(W,kerdim,m)==kerdim){//good comb
+      degtmp=1;
+      for(i=0;i<kerdim;i++)
+	degtmp*=alldegs[wc[i]];
+      if(degtmp<mindeg){//better than best so far
+	mindeg=degtmp;
+	veccp(wc,kerdim,wc1);
+      }
+
+    }
+
+    flag=nextcomb(wc, tottmp, kerdim);
+  }
   for(i=0;i<kerdim;i++){
-    addnewtoarray(&basis, *tot, basistmp[inds[i]], m);
+    addnewtoarray(&basis, *tot, basistmp[wc1[i]], m);
     (*tot)++;
   }
   (*deg)=1;
   for(i=0;i<kerdim;i++)
-    (*deg)*=alldegs[i];
+    (*deg)*=alldegs[wc1[i]];
 
-  
+
+  free_imatrix(W,0,kerdim-1,0,m-1);
   free_imat(basistmp, tottmp);
   free_imat(faces, tottmp);
   if(debug){fprintf(stderr, "###Exiting minkerbasis.\n");}

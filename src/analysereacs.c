@@ -9047,7 +9047,8 @@ char *cmplxCRN(char *di6, int n, int m, int minlayers, int sourceonly, int *totc
   bool *V;
   int totV;
   int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
-  int numl=numlayers(di6, n, m);//maintain the layers
+  //  int numl=numlayers(di6, n, m);//maintain the layers
+  int numl=minlayers;//...or use minimum
 
   //complexes
   if(sourceonly==2){//sources only with multiplicity
@@ -9731,7 +9732,7 @@ char *multinn3nscr(int **Si, int **Sil, int n, int m, int numeq){
   W=minA1tkerbasis(Sil, n, m, &totW, &rk1, &deg, 0, debug);
 
   //sprintf(str, "Print[\"degree = %d\"]\n",degree);
-
+  str[0]=0;
   for(j=0;j<2;j++){
     sprintf(str+strlen(str), "f%d[x_,y_]:=",j+1);
     count=0;
@@ -9792,6 +9793,7 @@ char *multinn3nscr(int **Si, int **Sil, int n, int m, int numeq){
 
 
   fprintf(stderr, "%s\n\n",str);
+  //fprintf(stderr, "totbasis=%d, totW=%d\n", totbasis, totW);
   //exit(0);
   free(str);
   free_imat(basisT,totbasis);
@@ -10086,6 +10088,7 @@ int solvabilitydegree(char *di6, int n, int m){
   return degree;
 }
 
+
 //Mixed volume of the Q-polynomials, assuming r = m-1
 void printQmixed(int **Si, int **Sil, int n, int m){
   int i,degree=0;
@@ -10127,6 +10130,8 @@ void printQmixed(char *di6, int n, int m){
   return;
 }
 
+
+
 //Mixed volume of the Q-polynomials, assuming r = m-1
 int Qmixed(int **Si, int **Sil, int n, int m){
   int i,degree=0;
@@ -10165,6 +10170,7 @@ int Qmixed(char *di6, int n, int m){
   free_imatrix(AM, 0, n+m-1, 0, n+m-1);
   return V;
 }
+
 
 
 //print the inverse of [A|1] assuming square and invertible
@@ -14242,8 +14248,21 @@ void printsolvabilityMixedVolsrc(char *di6, int n, int m, int rank, int debug){
   return;
 }
 
-
-
+//Q-mixed volume and Mixed Vol using sources only comparison (for (n,m,m-1) CRNs)
+void printQmixedVolsrc(char *di6, int n, int m, int rank, int debug){
+  int entries,V,totV, QM;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  QM=Qmixed(AM,n,m);
+  V=MixedVolCRN(AM,n,m,1,rank,debug);
+  if(QM>V)
+    fprintf(stderr, "****");
+  else if(V>QM)
+    fprintf(stderr, "####");
+  printQmixed(AM,n,m);
+  fprintf(stderr, "Q-mixed volume: %d, Mixed Vol (sources only): %d\n", QM, V);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return;
+}
 
 
 
@@ -14583,7 +14602,7 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
 	 fprintf(stderr, "Print[\"%s\"]\n",str);
 	 free(str);
       }
-      if(!strcmp(filt, "MixedVol")||!strcmp(filt, "MixedVolsrc")||!strcmp(filt, "printsolvabilityMixedVol")||!strcmp(filt, "printsolvabilityMixedVolsrc")||!strcmp(filt, "printQmixed")){
+      if(!strcmp(filt, "MixedVol")||!strcmp(filt, "MixedVolsrc")||!strcmp(filt, "printsolvabilityMixedVol")||!strcmp(filt, "printsolvabilityMixedVolsrc")||!strcmp(filt, "printQmixed")||!strcmp(filt, "printQmixedVolsrc")){
 	fprintf(stderr,"//%ld/%ld\n",i,numl);//to stdout
 	str=di6toreacstr(oneline,n,m,0);
 	fprintf(stderr, "%s",str);
@@ -14698,6 +14717,10 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
 	printQmixed(oneline, n, m);
 	num++;
       }
+      else if(!strcmp(filt, "printQmixedVolsrc")){
+	printQmixedVolsrc(oneline, n, m, iconst, debug);
+	num++;
+      }
       else if(!strcmp(filt, "getfacestruct")){
 	getfacestructCRN(oneline, n, m, debug);
 	num++;
@@ -14793,6 +14816,21 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
       if(debug)
 	fprintf(stderr, "sources=%d\n", val);
     }
+    //at least this number of sources
+    else if(!strcmp(filt, "sourcesplus")){
+      if((val=countsources(oneline, n, m))>=iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "sources=%d\n", val);
+    }
+    else if(!strcmp(filt, "notsourcesplus")){
+      if((val=countsources(oneline, n, m))<iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "sources=%d\n", val);
+    }
     //affine dependence among sources
     else if(!strcmp(filt, "affdepsources")){
       if(affdepsources(oneline, n, m)){
@@ -14852,6 +14890,22 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
       if(debug)
 	fprintf(stderr, "solvability degree=%d\n", val);
     }
+    //Like solvability degree, but return CRN with solvability degree at least as given
+    else if(!strcmp(filt, "solvabilitydegreeplus")){
+      if((val=solvabilitydegree(oneline, n, m))>=iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "solvability degree=%d\n", val);
+    }
+    else if(!strcmp(filt, "notsolvabilitydegreeplus")){
+      if((val=solvabilitydegree(oneline, n, m))<iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+      if(debug)
+	fprintf(stderr, "solvability degree=%d\n", val);
+    }
+
 
     //mixed volume of Q
     else if(!strcmp(filt, "Qmixed")){

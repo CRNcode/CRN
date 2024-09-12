@@ -8,6 +8,8 @@
 *notleftrank1: rank of reactant matrix augmented with a row of ones not equal to (requires the rank as an additional argument)
 *sources: number of source complexes (requires this number as an additional argument)
 *notsources: number of sources different from (requires this number as an additional argument)
+*sourcesplus: at least this number of source complexes (requires this number as an additional argument)
+*notsourcesplus: fewer than this number of sources (requires this number as an additional argument)
 *molecularity: molecularity must be exactly equal to <val> (e.g., to exclude linear networks)
 *notmolecularity: molecularity must not be <val> 
 affdepsources: the source complexes are affinely dependent
@@ -98,7 +100,10 @@ notsemiaccord or notsemiaccordant
 *notMAeqaccord: cannot confirm that J is a P0- matrix
 *QMAnegsemidef: Q is negative semidefinite (hence J is in the closure of the Hurwitz matrices)
 *notQMAnegsemidef: Q cannot be confirmed to be negative semidefinite
-
+*solvabilitydegree: the solvability conditions have degree (or Bezout bound) given
+*notsolvabilitydegree: the solvability conditions do not have degree (or Bezout bound) given
+*solvabilitydegreeplus: the solvability conditions have degree (or Bezout bound) at least equal to the value given
+*notsolvabilitydegreeplus: the solvability conditions have degree (or Bezout bound) less than the value given
 
 *JMAadmitsIpair: J admits a pair of imaginary eigenvalues
 *notJMAadmitsIpair: cannot confirm that J admits a pair of imaginary eigenvalues

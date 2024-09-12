@@ -1,0 +1,54 @@
+## Confirming, for the first few values of n>=2, that (n,n+2,n) quadratic
+## CRNs admit no more than n+1 positive nondegenerate equilibria [Thm. 5.6],
+
+
+##(3,5,3) CRNs admit no more than 4 PNE
+#405 combinations of sources (not necessarily distinct)
+../bin/genbimol -fLHS networks/35src.d6 3 5
+#54 have five distinct sources
+../bin/filterCRNs networks/35src.d6 networks/35src5.d6 3 5 sources 5
+#For 48 of these, [A|1] has rank 4
+../bin/filterCRNs networks/35src5.d6 networks/35src_LR4.d6 3 5 leftrank1 4
+#None have solvability degree greater than 4
+../bin/filterCRNs networks/35src_LR4.d6 tempfiles/35src_LR4_deg5.d6 3 5 solvabilitydegreeplus 5
+#2 have solvability degree 4
+../bin/filterCRNs networks/35src_LR4.d6 networks/35src_LR4_deg4.d6 3 5 solvabilitydegree 4
+
+##(4,6,4) CRNs admit no more than 5 PNE
+#2197 combinations of sources (not necessarily distinct)
+../bin/genbimol -fLHS networks/46src.d6 4 6
+#290 have six distinct sources
+../bin/filterCRNs networks/46src.d6 networks/46src6.d6 4 6 sources 6
+#For 219 of these, [A|1] has rank 5
+../bin/filterCRNs networks/46src6.d6 networks/46src_LR5.d6 4 6 leftrank1 5
+#None have solvability degree greater than 5
+../bin/filterCRNs networks/46src_LR5.d6 tempfiles/46src_LR5_deg6.d6 4 6 solvabilitydegreeplus 6
+#3 have solvability degree 5
+../bin/filterCRNs networks/46src_LR5.d6 networks/46src_LR5_deg5.d6 4 6 solvabilitydegree 5
+
+## (5,7,5) CRNs admit no more than 6 PNE
+## (The first step takes a while - over an hour on my computer)
+#11361 combinations of sources (not necessarily distinct)
+../bin/genbimol -fLHS networks/57src.d6 5 7
+#1436 have seven distinct sources
+../bin/filterCRNs networks/57src.d6 networks/57src7.d6 5 7 sources 7
+#For 904 of these, [A|1] has rank 6
+../bin/filterCRNs networks/57src7.d6 networks/57src_LR6.d6 5 7 leftrank1 6
+#None have solvability degree greater than 6
+../bin/filterCRNs networks/57src_LR6.d6 tempfiles/57src_LR6_deg7.d6 5 7 solvabilitydegreeplus 7
+#3 have solvability degree 6
+../bin/filterCRNs networks/57src_LR6.d6 networks/57src_LR6_deg6.d6 5 7 solvabilitydegree 6
+
+
+####
+## Check that the alternative Bezout bound always beats (or equals) the 
+## naive BKK source bound for n=2,3,4,5 [Conjecture 5.10 and Remark 5.11]
+## We don't need to check CRNs with only n+1 sources as in this case
+## the solvability condition is linear giving an alternative Bezout bound
+## of 1, which clearly cannot be improved on.
+
+../bin/filterCRNs networks/24src_LR3.d6 NULL 2 4 printsolvabilityMixedVolsrc 2 2> tempfiles/24solMV.log
+../bin/filterCRNs networks/35src_LR4.d6 NULL 3 5 printsolvabilityMixedVolsrc 3 2> tempfiles/35solMV.log
+../bin/filterCRNs networks/46src_LR5.d6 NULL 4 6 printsolvabilityMixedVolsrc 4 2> tempfiles/46solMV.log
+../bin/filterCRNs networks/57src_LR6.d6 NULL 5 7 printsolvabilityMixedVolsrc 5 2> tempfiles/57solMV.log
+

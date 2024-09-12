@@ -99,7 +99,6 @@ int main(int argc, char *argv[]){
     filter="ALL";
 
   genbimultimol(numspec,numreac,outfile,open,filter,outmol,debug);
-//  genbitetramol(numspec,numreac,outfile,open,filter,debug);
 
   return 0;
 }

@@ -101,7 +101,7 @@ int main(int argc, char *argv[]){
       exit(0);
     }
   }
-  if(!strcmp(filter,"MixedVolsrc")|| !strcmp(filter,"printsolvabilityMixedVolsrc")){
+  if(!strcmp(filter,"MixedVolsrc")|| !strcmp(filter,"printsolvabilityMixedVolsrc")|| !strcmp(filter,"printQmixedVolsrc")){
     if(mainargs<6){
       fprintf(stderr, "The sixth argument must be the rank. EXITING.\n");
       exit(0);

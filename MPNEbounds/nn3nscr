@@ -1,0 +1,22 @@
+# Compare the alternative Bezout bound with the naive BKK source bound for 
+# (n,n+3,n) networks for (n=2,3). Either can win. (Remark 5.12)
+
+#(2,5,2)
+#136 source combinations
+../bin/genbimol -fLHS networks/25src.d6 2 5
+#36 have four or more distinct sources
+../bin/filterCRNs networks/25src.d6 networks/25src4plus.d6 2 5 sourcesplus 4
+#All have rank[A|1]=3
+../bin/filterCRNs networks/25src4plus.d6 networks/25src_LR3.d6 2 5 leftrank1 3
+#Mixed results
+../bin/filterCRNs networks/25src_LR3.d6 NULL 2 5 printsolvabilityMixedVolsrc 2 2> tempfiles/25solMV.log
+
+#(3,6,3)
+#967 (3,6) quadratic source combinations
+../bin/genbimol -fLHS networks/36src.d6 3 6
+#281 have 5 or more distinct sources
+../bin/filterCRNs networks/36src.d6 networks/36src5plus.d6 3 6 sourcesplus 5
+#257 have rank[A|1]=4
+../bin/filterCRNs networks/36src5plus.d6 networks/36src_LR4.d6 3 6 leftrank1 4
+#Mixed results
+../bin/filterCRNs networks/36src_LR4.d6 NULL 3 6 printsolvabilityMixedVolsrc 3 2> tempfiles/36solMV.log
