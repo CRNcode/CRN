@@ -24,6 +24,8 @@ int checkrankS(int **S, int n, int m);
 int checkrank(int **AM, int n, int m);
 int checkrank(char *di6, int n, int m);
 
+int sourcedef(char *di6, int n, int m);
+
 int isSSD2(int **imat, int n, int m);
 int isSSD1(int **imat, int n, int m, bool allm, int *rkbad, int q);
 int isSSD(int **mat, int n, int m, int q);
@@ -174,3 +176,6 @@ int numlayers(char *di6, int n, int m);
 int **minA1tkerbasis(int **Sil, int n, int m, int *tot, int *rk, int *deg, int transpose, int debug);
 int PolytopeVol(int **AM, int n, int m, int debug);
 int PolytopeVol(char *di6, int n, int m, int debug);
+int fluxcone_comps(int **Si, int n, int m);
+int fluxcone_comps(char *di6, int n, int m);
+int printfluxcone_comps(char *di6, int n, int m);

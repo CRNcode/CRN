@@ -113,6 +113,18 @@ int main(int argc, char *argv[]){
       exit(0);
     }
   }
+  if(outfile && !strcmp(filter,"fluxconecomps")){
+    if(mainargs<6){
+      fprintf(stderr, "The sixth argument must be the number of components of the flux cone. EXITING.\n");
+      exit(0);
+    }
+  }
+  if(outfile && !strcmp(filter,"fluxconecompsplus")){
+    if(mainargs<6){
+      fprintf(stderr, "The sixth argument must be the minimum number of components of the flux cone. EXITING.\n");
+      exit(0);
+    }
+  }
 
   if(strstr(filter,"concord1") || strstr(filter,"MAeqaccord") || strstr(filter,"MAeqconcord") || strstr(filter,"JadmitsIpair") || strstr(filter,"JMAadmitsIpair") || strstr(filter,"JsquaredisP0") || strstr(filter,"JMAconcord") || strstr(filter,"Jnonsing") || strstr(filter,"JMAnonsing") || strstr(filter,"Jcomp2nonsing") || strstr(filter,"Jcomp2detsigned") || strstr(filter,"JMAcomp2nonsing") || strstr(filter,"JMAcomp2detsigned") || strstr(filter,"JMAcomp2detnonstationary") || strstr(filter,"J2pIdetpos") || strstr(filter,"J2pIMAdetpos") || strstr(filter,"QMAnegdef") || strstr(filter, "QMAnegsemidef") || strstr(filter, "QMApossemidef") || strstr(filter, "JMAisP0") || strstr(filter, "Jcomp2isP0") || strstr(filter, "JMAsquaredisP0") || strstr(filter, "JMAcomp2isP0") || strstr(filter, "MABTbif") || strstr(filter, "MAeqdegen2") || strstr(filter, "JMArealspec")){
     if(mainargs<6){

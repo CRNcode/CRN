@@ -206,6 +206,17 @@ int areequal(double *vec1, double *vec2, int n){
   return 1;
 }
 
+//do two vectors have overlapping support?
+int overlap(int *vec1, int *vec2, int n){
+  int i;
+  for(i=0;i<n;i++){
+    if(vec2[i] && vec1[i])
+      return 1;
+  }
+  return 0;
+}
+
+
 //Is boolean vector vec1 a subvector of vec2? (both have length n)
 bool issubvec(bool *vec1, bool *vec2, int n){
   int i;
@@ -3297,7 +3308,7 @@ int nonzentries(int **imat, int n, int m){
   return tot;
 }
 
-//first nonzero entry (int vector)
+//position of first nonzero entry (int vector)
 int firstnonz(int *vec, int n){
   int i;
   for(i=0;i<n;i++){
@@ -3307,7 +3318,7 @@ int firstnonz(int *vec, int n){
   return -1;
 }
 
-//first nonzero entry (bool vector)
+//position of first nonzero entry (bool vector)
 int firstnonz(bool *vec, int n){
   int i;
   for(i=0;i<n;i++){

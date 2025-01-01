@@ -10785,6 +10785,32 @@ int checkrankSil1(char *di6, int n, int m){
 }
 
 
+//source deficient?
+int sourcedef(int **AM, int n, int m){
+  int ret1, ret2;
+  int **S=CRNamtostoichmat(AM,n,m);//stoichiometric matrix
+  int **S1=CRNamtoSil1(AM,n,m);//left stoichiometric matrix with added row of ones
+  ret1=checkrankS(S,n,m);
+  ret2=checkrankS(S1,n+1,m);
+
+  free_imatrix(S, 0, n-1, 0, m-1);
+  free_imatrix(S1, 0, n, 0, m-1);
+  if(ret2-1<ret1)//source deficient
+    return 1;
+  return 0;
+}
+
+// Overloading
+int sourcedef(char *di6, int n, int m){
+  int entries,ret;
+  int totV;
+  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
+  ret=sourcedef(AM,n,m);
+  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
+  return ret;
+}
+
+
 
 //depth first seach on the Petri Net graph, stored as
 //left and right stoich matrices. Recursive.
@@ -13361,7 +13387,7 @@ int reacread(FILE *fd, bool isblock, char line[], int maxl, char block[], int ma
 int reacreport(int **AM, int **S, int **Sl, int n, int m, int Srank, int maxpppdeg, char ***outlist, int **outvec, char *filter, int debug){
   int totv=0;
   int gen, nonautocatalytic, nontriv, bdc;
-  int connect, Spersist, endotact, WR, norm;
+  int connect, Spersist, /* endotact,  */WR, norm;
   int DSRreport, DSRCstar,acc,semiacc,MAeqacc;
   int conc,semiconc,MAeqconc;
   int nohopf,pppdegused,QMAnegsemidef;
@@ -13441,11 +13467,11 @@ int reacreport(int **AM, int **S, int **Sl, int n, int m, int Srank, int maxpppd
     }
   }
 
-  if(!filter || strstr(filter, "endo")){//2 means strongly endotactic
-    endotact=(int)(endotactic(AM,n,m,debug));
-    addnewto1Darray(outvec, totv, endotact);
-    totv=addv2(totv, (char*)"endotactic", outlist);
-  }
+  /* if(!filter || strstr(filter, "endo")){//2 means strongly endotactic */
+  /*   endotact=(int)(endotactic(AM,n,m,debug)); */
+  /*   addnewto1Darray(outvec, totv, endotact); */
+  /*   totv=addv2(totv, (char*)"endotactic", outlist); */
+  /* } */
 
 
   //accordance, concordance, etc
@@ -13732,220 +13758,220 @@ int subCRN(int **S, int **Sl, int n, int m, int ***subS, int ***subSl, int *part
 }
 
 
-//Check if a CRN is "weakly endotactic"
-//i.e., no reaction vectors point out of N
-//a necessary but not sufficient condition for endotacticity
-int weakendo(int **S, int **Sl, int n, int m, int debug){
-  int j, j0=-1, ret=1;
-  int **St=transposemat(S,n,m);
-  int **Slt=transposemat(Sl,n,m);
-  int **Sltshift=imatrix(0, m-1, 0, n-1);
-  if(debug){fprintf(stderr, "\n###Entering weakendo.\n");}
+/* //Check if a CRN is "weakly endotactic" */
+/* //i.e., no reaction vectors point out of N */
+/* //a necessary but not sufficient condition for endotacticity */
+/* int weakendo(int **S, int **Sl, int n, int m, int debug){ */
+/*   int j, j0=-1, ret=1; */
+/*   int **St=transposemat(S,n,m); */
+/*   int **Slt=transposemat(Sl,n,m); */
+/*   int **Sltshift=imatrix(0, m-1, 0, n-1); */
+/*   if(debug){fprintf(stderr, "\n###Entering weakendo.\n");} */
 
-  for(j=0;j<m;j++){
-    translatematbyrow(Slt, m, n, j, Sltshift);
-    if(!isincone(Sltshift, (long*)NULL, m, n, St[j])){
-      j0=j+1;ret=0;break;
-    }
-  }
+/*   for(j=0;j<m;j++){ */
+/*     translatematbyrow(Slt, m, n, j, Sltshift); */
+/*     if(!isincone(Sltshift, (long*)NULL, m, n, St[j])){ */
+/*       j0=j+1;ret=0;break; */
+/*     } */
+/*   } */
 
-  free_imatrix(St,0,m-1,0,n-1);
-  free_imatrix(Slt,0,m-1,0,n-1);
-  free_imatrix(Sltshift,0,m-1,0,n-1);
+/*   free_imatrix(St,0,m-1,0,n-1); */
+/*   free_imatrix(Slt,0,m-1,0,n-1); */
+/*   free_imatrix(Sltshift,0,m-1,0,n-1); */
 
-  if(debug){
-    if(!ret)
-      fprintf(stderr, "An outward pointing reaction (%d) found.\n", j0);
-    else
-      fprintf(stderr, "No outward pointing reactions found.\n");
-  }
-  return ret;
-}
-
-
-
-//Check if a (sub)CRN is endotactic/strongly endotactic;
-//Recursive if there are inessential faces
-//returns 2 for strong, 1 for endo but not strong, and 0 for not endo
-//Assume we have broken into components if necessary using "partitionCRN" so that
-//the dimension of the Newton polytope is <= the rank of the network
-int endotactic_part(int **S, int **Sl, int n, int m, int debug){
-  int i, i1, j, j1, j2, m1, numfacets;
-  int numverts;
-  //facets of dimension 2 to rk-1
-  bool **allfacets=NULL;
-  int rank, *rankvec;
-  int **Sl1, **vertmat;
-  int **St1=imatrix(0, m-1, 0, n);
-  int **Slt1=imatrix(0, m-1, 0, n);
-  int pat[m];
-  int ret=2;//strong endotactic until proven otherwise
-  int goodreac;
-  Sl1=redmat1(Sl,n,m,&m1,pat);//remove repeated cols (store the pattern)
-  bool verts[m1];
-  int totverts;
-  int debugfull=(debug<=0)?0:debug-1;
-  int **redS, **redSl;
-  bool iness[m];//to store inessential face
-  int totiness;
-  int subret;
-  char *str;
-
-  if(debug){fprintf(stderr, "\n###Entering endotactic_part(...)\n");}
-
-  if(!weakendo(S,Sl, n, m, debug)){
-    if(debug){fprintf(stderr, "The (sub)CRN fails to be weakly endotactic.\n");}
-    return 0;
-  }
-
-  //alternative version (small networks): use getfacestruct instead of getfacestruct1; comment out "free((char*)rankvec);"
-  //vectors in allfacets have length numverts, and refer to vertmat
-  //numfacets=getfacestruct(Sl1, n, m1, verts, &allfacets, debugfull);
-  numfacets=getfacestruct1(Sl1, n, m1, verts, &allfacets, &rank, &rankvec, &totverts, debugfull);
-
-  //matrix of extremal vectors of the cone
-  vertmat=conemat(Sl1, n, m1, verts, &numverts);//dimensions (n+1) X numverts
-
-  if(debug){fprintf(stderr, "Vertex matrix:\n");printmat(vertmat,n+1,numverts);}
-  if(debug){fprintf(stderr, "Found %d proper faces of dimension >=2\n", numfacets);}
-
-  //transposed and augmented matrices
-  for(j=0;j<m;j++){
-    for(i=0;i<n;i++){
-      St1[j][i]=S[i][j];Slt1[j][i]=Sl[i][j];
-    }
-    St1[j][n]=0;Slt1[j][n]=1;
-  }
-  //if(debug){fprintf(stderr, "Augmented transposed matrices: \n");printmat(St1,m,n+1);printmat(Slt1,m,n+1);}
-  //check for inessential faces (we have already checked not weakly endotactic)
-  for(i=0;i<numfacets;i++){//each face
-    if(debug){fprintf(stderr, "Checking face %d: \n", i+1);printvec(allfacets[i],numverts);}
-    goodreac=0;inittozero(iness,m);totiness=0;
-    for(j=0;j<m;j++){//find each reactant complex in face
-      if(isinrcone(vertmat, allfacets[i], n+1, numverts, Slt1[j])){
-	iness[j]=1;totiness++;//keep track of reactions in case face is inessential
-	if(debug){fprintf(stderr, "\tReaction %d originates in the face at: ", j+1);printvec(Slt1[j],n);}
-	//check if reaction vector is in span of face
-	if(!isinrspan(vertmat, allfacets[i], n+1, numverts, St1[j], 0)){
-	  goodreac=1;//reaction pointing off face: not inessential
-	  if(debug){fprintf(stderr, "\t\tReaction %d points off the face.\n",j+1);}
-	  break;
-	}
-	else{
-	  if(debug){fprintf(stderr, "\t\tReaction %d points along the face.\n", j+1);}
-	}
-      }
-    }
-    if(!goodreac){//inessential face with no good reactions
-      if(debug){fprintf(stderr, "**The face has no good reactions. Removing and trying again.\n\n");}
-      ret=1;//fails strong endo, but could still be endo
-      //remove everything stored in iness to create redS, redSl
-      redS=imatrix(0,n-1,0,m-totiness-1);redSl=imatrix(0,n-1,0,m-totiness-1);
-      j2=0;
-      for(j1=0;j1<m;j1++){
-	if(!(iness[j1])){
-	  for(i1=0;i1<n;i1++){
-	    redS[i1][j2]=S[i1][j1];redSl[i1][j2]=Sl[i1][j1];
-	  }
-	  j2++;
-	}
-      }
-      if(debug){str=SSltostr(redS, redSl, n, m-totiness);fprintf(stderr, "New subCRN:\n%s\n",str);free(str);printmat(redS,n,m-totiness);printmat(redSl,n,m-totiness);}
-      subret=endotactic_part(redS, redSl, n, m-totiness, debug);
-      free_imatrix(redS,0,n-1,0,m-totiness-1);free_imatrix(redSl,0,n-1,0,m-totiness-1);
-      if(subret<ret){ret=subret;}
-      if(ret==0)//failure
-	break;
-    }
-    else if(debug){fprintf(stderr, "**The face has a good reaction.\n\n");}
-  }
-
-  free_imatrix(Sl1, 0, n-1, 0, m1-1);
-  free_imatrix(St1, 0, m-1, 0, n);
-  free_imatrix(Slt1, 0, m-1, 0, n);
-  free_imatrix(vertmat, 0, n, 0, numverts-1);
-  free_bmat(allfacets, numfacets);
-  if(numfacets)
-    free((char*)rankvec);
-
-  /* if(debug) */
-  /*     fprintf(stderr, "The (sub)network %s strongly endotactic.\n",ret?"is":"fails to be"); */
-
-  return ret;
-}
+/*   if(debug){ */
+/*     if(!ret) */
+/*       fprintf(stderr, "An outward pointing reaction (%d) found.\n", j0); */
+/*     else */
+/*       fprintf(stderr, "No outward pointing reactions found.\n"); */
+/*   } */
+/*   return ret; */
+/* } */
 
 
+/* //Errors in this at the moment: removed from checks */
+/* //Check if a (sub)CRN is endotactic/strongly endotactic; */
+/* //Recursive if there are inessential faces */
+/* //returns 2 for strong, 1 for endo but not strong, and 0 for not endo */
+/* //Assume we have broken into components if necessary using "partitionCRN" so that */
+/* //the dimension of the Newton polytope is <= the rank of the network */
+/* int endotactic_part(int **S, int **Sl, int n, int m, int debug){ */
+/*   int i, i1, j, j1, j2, m1, numfacets; */
+/*   int numverts; */
+/*   //facets of dimension 2 to rk-1 */
+/*   bool **allfacets=NULL; */
+/*   int rank, *rankvec; */
+/*   int **Sl1, **vertmat; */
+/*   int **St1=imatrix(0, m-1, 0, n); */
+/*   int **Slt1=imatrix(0, m-1, 0, n); */
+/*   int pat[m]; */
+/*   int ret=2;//strong endotactic until proven otherwise */
+/*   int goodreac; */
+/*   Sl1=redmat1(Sl,n,m,&m1,pat);//remove repeated cols (store the pattern) */
+/*   bool verts[m1]; */
+/*   int totverts; */
+/*   int debugfull=(debug<=0)?0:debug-1; */
+/*   int **redS, **redSl; */
+/*   bool iness[m];//to store inessential face */
+/*   int totiness; */
+/*   int subret; */
+/*   char *str; */
 
-int endotactic(int **S, int **Sl, int n, int m, int debug){
-  int i, m1, ret=2, subret;
-  int Srk=matrank(S,n,m);//rank of CRN
-  int Slrk;
-  bool verts[m];
-  int **SlC;
-  int *part;
-  int numpart;
-  int sz;
-  int **subS,**subSl;
-  char *str;
-  inittoone(verts,m);
-  SlC=conemat(Sl,n,m,verts,&m1);
-  Slrk=matrank(SlC,n+1,m1)-1;
-  free_imatrix(SlC,0,n,0,m1-1);
-  //Only decompose if Srk< Slrk
-  if(Srk<Slrk){
-    part=partitionCRN(S, Sl, n, m, &numpart);//partition
-    if(debug){fprintf(stderr, "partitioning network: ");printvec(part,m);}
-    for(i=0;i<numpart;i++){
-      sz=subCRN(S, Sl, n, m, &subS, &subSl, part, i+1);
-      if(debug){str=SSltostr(subS, subSl, n, sz);fprintf(stderr, "processing subCRN %d: \n%s\n", i+1, str);free(str);}
+/*   if(debug){fprintf(stderr, "\n###Entering endotactic_part(...)\n");} */
 
-      //process each part
-      subret=endotactic_part(subS, subSl, n, sz, debug);
-      free_imatrix(subS,0,n-1,0,sz-1);
-      free_imatrix(subSl,0,n-1,0,sz-1);
-      if(subret<ret){ret=subret;}
-      if(ret==0){
-	free((char*)part);
-	if(debug){fprintf(stderr, "The subCRN fails to be endotactic.\n#####\n");}
-	return 0;
-      }
-      if(debug){fprintf(stderr, "The subCRN is %sendotactic.\n#####\n",ret==2?"strongly ":"");}
+/*   if(!weakendo(S,Sl, n, m, debug)){ */
+/*     if(debug){fprintf(stderr, "The (sub)CRN fails to be weakly endotactic.\n");} */
+/*     return 0; */
+/*   } */
 
-    }
-    free((char*)part);
-  }
-  else//process whole
-    ret=endotactic_part(S, Sl, n, m, debug);
+/*   //alternative version (small networks): use getfacestruct instead of getfacestruct1; comment out "free((char*)rankvec);" */
+/*   //vectors in allfacets have length numverts, and refer to vertmat */
+/*   //numfacets=getfacestruct(Sl1, n, m1, verts, &allfacets, debugfull); */
+/*   numfacets=getfacestruct1(Sl1, n, m1, verts, &allfacets, &rank, &rankvec, &totverts, debugfull); */
 
-  if(debug){
-    if(ret==2){fprintf(stderr, "The CRN is strongly endotactic.\n");}
-    else if(ret==1){fprintf(stderr, "The CRN is endotactic but not strongly endotactic.\n");}
-    else{fprintf(stderr, "The CRN fails to be endotactic.\n");}
-  }
+/*   //matrix of extremal vectors of the cone */
+/*   vertmat=conemat(Sl1, n, m1, verts, &numverts);//dimensions (n+1) X numverts */
 
-  return ret;
-}
+/*   if(debug){fprintf(stderr, "Vertex matrix:\n");printmat(vertmat,n+1,numverts);} */
+/*   if(debug){fprintf(stderr, "Found %d proper faces of dimension >=2\n", numfacets);} */
+
+/*   //transposed and augmented matrices */
+/*   for(j=0;j<m;j++){ */
+/*     for(i=0;i<n;i++){ */
+/*       St1[j][i]=S[i][j];Slt1[j][i]=Sl[i][j]; */
+/*     } */
+/*     St1[j][n]=0;Slt1[j][n]=1; */
+/*   } */
+/*   //if(debug){fprintf(stderr, "Augmented transposed matrices: \n");printmat(St1,m,n+1);printmat(Slt1,m,n+1);} */
+/*   //check for inessential faces (we have already checked not weakly endotactic) */
+/*   for(i=0;i<numfacets;i++){//each face */
+/*     if(debug){fprintf(stderr, "Checking face %d: \n", i+1);printvec(allfacets[i],numverts);} */
+/*     goodreac=0;inittozero(iness,m);totiness=0; */
+/*     for(j=0;j<m;j++){//find each reactant complex in face */
+/*       if(isinrcone(vertmat, allfacets[i], n+1, numverts, Slt1[j])){ */
+/* 	iness[j]=1;totiness++;//keep track of reactions in case face is inessential */
+/* 	if(debug){fprintf(stderr, "\tReaction %d originates in the face at: ", j+1);printvec(Slt1[j],n);} */
+/* 	//check if reaction vector is in span of face */
+/* 	if(!isinrspan(vertmat, allfacets[i], n+1, numverts, St1[j], 0)){ */
+/* 	  goodreac=1;//reaction pointing off face: not inessential */
+/* 	  if(debug){fprintf(stderr, "\t\tReaction %d points off the face.\n",j+1);} */
+/* 	  break; */
+/* 	} */
+/* 	else{ */
+/* 	  if(debug){fprintf(stderr, "\t\tReaction %d points along the face.\n", j+1);} */
+/* 	} */
+/*       } */
+/*     } */
+/*     if(!goodreac){//inessential face with no good reactions */
+/*       if(debug){fprintf(stderr, "**The face has no good reactions. Removing and trying again.\n\n");} */
+/*       ret=1;//fails strong endo, but could still be endo */
+/*       //remove everything stored in iness to create redS, redSl */
+/*       redS=imatrix(0,n-1,0,m-totiness-1);redSl=imatrix(0,n-1,0,m-totiness-1); */
+/*       j2=0; */
+/*       for(j1=0;j1<m;j1++){ */
+/* 	if(!(iness[j1])){ */
+/* 	  for(i1=0;i1<n;i1++){ */
+/* 	    redS[i1][j2]=S[i1][j1];redSl[i1][j2]=Sl[i1][j1]; */
+/* 	  } */
+/* 	  j2++; */
+/* 	} */
+/*       } */
+/*       if(debug){str=SSltostr(redS, redSl, n, m-totiness);fprintf(stderr, "New subCRN:\n%s\n",str);free(str);printmat(redS,n,m-totiness);printmat(redSl,n,m-totiness);} */
+/*       subret=endotactic_part(redS, redSl, n, m-totiness, debug); */
+/*       free_imatrix(redS,0,n-1,0,m-totiness-1);free_imatrix(redSl,0,n-1,0,m-totiness-1); */
+/*       if(subret<ret){ret=subret;} */
+/*       if(ret==0)//failure */
+/* 	break; */
+/*     } */
+/*     else if(debug){fprintf(stderr, "**The face has a good reaction.\n\n");} */
+/*   } */
+
+/*   free_imatrix(Sl1, 0, n-1, 0, m1-1); */
+/*   free_imatrix(St1, 0, m-1, 0, n); */
+/*   free_imatrix(Slt1, 0, m-1, 0, n); */
+/*   free_imatrix(vertmat, 0, n, 0, numverts-1); */
+/*   free_bmat(allfacets, numfacets); */
+/*   if(numfacets) */
+/*     free((char*)rankvec); */
+
+/*   /\* if(debug) *\/ */
+/*   /\*     fprintf(stderr, "The (sub)network %s strongly endotactic.\n",ret?"is":"fails to be"); *\/ */
+
+/*   return ret; */
+/* } */
 
 
-//overloading: PN input
-int endotactic(int **AM, int n, int m, int debug){
-  int ret, **S, **Sl;
-  AMtoSSl(AM, n, m, 0, &S, &Sl);
-  ret=endotactic(S, Sl, n, m, debug);
-  free_imatrix(S, 0, n-1, 0, m-1);
-  free_imatrix(Sl, 0, n-1, 0, m-1);
-  return ret;
-}
+/* //Errors, ignore */
+/* int endotactic(int **S, int **Sl, int n, int m, int debug){ */
+/*   int i, m1, ret=2, subret; */
+/*   int Srk=matrank(S,n,m);//rank of CRN */
+/*   int Slrk; */
+/*   bool verts[m]; */
+/*   int **SlC; */
+/*   int *part; */
+/*   int numpart; */
+/*   int sz; */
+/*   int **subS,**subSl; */
+/*   char *str; */
+/*   inittoone(verts,m); */
+/*   SlC=conemat(Sl,n,m,verts,&m1); */
+/*   Slrk=matrank(SlC,n+1,m1)-1; */
+/*   free_imatrix(SlC,0,n,0,m1-1); */
+/*   //Only decompose if Srk< Slrk */
+/*   if(Srk<Slrk){ */
+/*     part=partitionCRN(S, Sl, n, m, &numpart);//partition */
+/*     if(debug){fprintf(stderr, "partitioning network: ");printvec(part,m);} */
+/*     for(i=0;i<numpart;i++){ */
+/*       sz=subCRN(S, Sl, n, m, &subS, &subSl, part, i+1); */
+/*       if(debug){str=SSltostr(subS, subSl, n, sz);fprintf(stderr, "processing subCRN %d: \n%s\n", i+1, str);free(str);} */
 
-//overloading: di6 input
-int endotactic(char *di6, int n, int m, int debug){
-  int ret, entries;
-  int totV;
-  int **AM=di6toCRNam1(di6, n, m, &totV, &entries);
-  ret=endotactic(AM,n,m,debug);
-  free_imatrix(AM, 0, n+m-1, 0, n+m-1);
-  return ret;
-}
+/*       //process each part */
+/*       subret=endotactic_part(subS, subSl, n, sz, debug); */
+/*       free_imatrix(subS,0,n-1,0,sz-1); */
+/*       free_imatrix(subSl,0,n-1,0,sz-1); */
+/*       if(subret<ret){ret=subret;} */
+/*       if(ret==0){ */
+/* 	free((char*)part); */
+/* 	if(debug){fprintf(stderr, "The subCRN fails to be endotactic.\n#####\n");} */
+/* 	return 0; */
+/*       } */
+/*       if(debug){fprintf(stderr, "The subCRN is %sendotactic.\n#####\n",ret==2?"strongly ":"");} */
+
+/*     } */
+/*     free((char*)part); */
+/*   } */
+/*   else//process whole */
+/*     ret=endotactic_part(S, Sl, n, m, debug); */
+
+/*   if(debug){ */
+/*     if(ret==2){fprintf(stderr, "The CRN is strongly endotactic.\n");} */
+/*     else if(ret==1){fprintf(stderr, "The CRN is endotactic but not strongly endotactic.\n");} */
+/*     else{fprintf(stderr, "The CRN fails to be endotactic.\n");} */
+/*   } */
+
+/*   return ret; */
+/* } */
+
+
+/* //overloading: PN input */
+/* int endotactic(int **AM, int n, int m, int debug){ */
+/*   int ret, **S, **Sl; */
+/*   AMtoSSl(AM, n, m, 0, &S, &Sl); */
+/*   ret=endotactic(S, Sl, n, m, debug); */
+/*   free_imatrix(S, 0, n-1, 0, m-1); */
+/*   free_imatrix(Sl, 0, n-1, 0, m-1); */
+/*   return ret; */
+/* } */
+
+/* //overloading: di6 input */
+/* int endotactic(char *di6, int n, int m, int debug){ */
+/*   int ret, entries; */
+/*   int totV; */
+/*   int **AM=di6toCRNam1(di6, n, m, &totV, &entries); */
+/*   ret=endotactic(AM,n,m,debug); */
+/*   free_imatrix(AM, 0, n+m-1, 0, n+m-1); */
+/*   return ret; */
+/* } */
 
 //overloading: PN input
 int PolytopeVol(int **AM, int n, int m, int debug){
@@ -14602,7 +14628,7 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
 	 fprintf(stderr, "Print[\"%s\"]\n",str);
 	 free(str);
       }
-      if(!strcmp(filt, "MixedVol")||!strcmp(filt, "MixedVolsrc")||!strcmp(filt, "printsolvabilityMixedVol")||!strcmp(filt, "printsolvabilityMixedVolsrc")||!strcmp(filt, "printQmixed")||!strcmp(filt, "printQmixedVolsrc")){
+      if(!strcmp(filt, "MixedVol")||!strcmp(filt, "MixedVolsrc")||!strcmp(filt, "printsolvabilityMixedVol")||!strcmp(filt, "printsolvabilityMixedVolsrc")||!strcmp(filt, "printQmixed")||!strcmp(filt, "printQmixedVolsrc")||!strcmp(filt, "printfluxconecomps")){
 	fprintf(stderr,"//%ld/%ld\n",i,numl);//to stdout
 	str=di6toreacstr(oneline,n,m,0);
 	fprintf(stderr, "%s",str);
@@ -14740,6 +14766,11 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
 	MixedVolCRNsrc(oneline, n, m, iconst, debug);
 	num++;
       }
+      else if(!strcmp(filt, "printfluxconecomps")){
+	printfluxcone_comps(oneline,n,m);
+	num++;
+      }
+
       else{
 	fprintf(stderr, "\"%s\" is not a recognised pseudotest. EXITING.\n",filt);
 	exit(0);
@@ -14874,7 +14905,22 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
       if(debug)
 	fprintf(stderr, "rank of [A|1]=%d\n", val);
     }
-
+    //how many components does the flux cone have?
+    else if(!strcmp(filt, "fluxconecomps")){
+      if((val=fluxcone_comps(oneline,n,m))==iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    else if(!strcmp(filt, "fluxconecompsplus")){
+      if((val=fluxcone_comps(oneline,n,m))>=iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    else if(!strcmp(filt, "notfluxconecomps")){
+      if((val=fluxcone_comps(oneline,n,m))!=iconst){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
     //degree of solvability polynomial (use for (n,n+k,n))
     else if(!strcmp(filt, "solvabilitydegree")){
       if((val=solvabilitydegree(oneline, n, m))==iconst){
@@ -14980,6 +15026,18 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
 	num++;fprintf(fd, "%s\n", oneline);
       }
     }
+    //source deficient?
+    else if(!strcmp(filt, "sourcedef")){
+      if(sourcedef(oneline, n, m)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
+    //not source deficient
+    else if(!strcmp(filt, "notsourcedef")){
+      if(!sourcedef(oneline, n, m)){
+	num++;fprintf(fd, "%s\n", oneline);
+      }
+    }
     //Deficiency
     else if(!strcmp(filt, "deficiency")){
       if(deficiency(oneline, n, m)==iconst){
@@ -15058,27 +15116,27 @@ unsigned long filterCRNs(const char *fname, const char *outfname, int n, int m, 
       }
     }
     //endotactic
-    else if(!strcmp(filt, "endotactic")){
-      if(endotactic(oneline, n, m, debug)){
-	num++;fprintf(fd, "%s\n", oneline);
-      }
-    }
-    else if(!strcmp(filt, "notendotactic")){
-      if(!endotactic(oneline, n, m,debug)){
-	num++;fprintf(fd, "%s\n", oneline);
-      }
-    }
-    //strongly endotactic
-    else if(!strcmp(filt, "strongendo")){
-      if(endotactic(oneline, n, m, debug)==2){
-	num++;fprintf(fd, "%s\n", oneline);
-      }
-    }
-    else if(!strcmp(filt, "notstrongendo")){
-      if(endotactic(oneline, n, m,debug)!=2){
-	num++;fprintf(fd, "%s\n", oneline);
-      }
-    }
+    /* else if(!strcmp(filt, "endotactic")){ */
+    /*   if(endotactic(oneline, n, m, debug)){ */
+    /* 	num++;fprintf(fd, "%s\n", oneline); */
+    /*   } */
+    /* } */
+    /* else if(!strcmp(filt, "notendotactic")){ */
+    /*   if(!endotactic(oneline, n, m,debug)){ */
+    /* 	num++;fprintf(fd, "%s\n", oneline); */
+    /*   } */
+    /* } */
+    /* //strongly endotactic */
+    /* else if(!strcmp(filt, "strongendo")){ */
+    /*   if(endotactic(oneline, n, m, debug)==2){ */
+    /* 	num++;fprintf(fd, "%s\n", oneline); */
+    /*   } */
+    /* } */
+    /* else if(!strcmp(filt, "notstrongendo")){ */
+    /*   if(endotactic(oneline, n, m,debug)!=2){ */
+    /* 	num++;fprintf(fd, "%s\n", oneline); */
+    /*   } */
+    /* } */
     //repeated reactions?
     else if(!strcmp(filt, "repeatedreacs")){
       if(repeatedreacs(oneline, n, m)){
@@ -16320,3 +16378,60 @@ int **minA1tkerbasis(int **Sil, int nt, int mt, int *tot, int *rk, int *deg, int
 }
 
 
+
+int fluxcone_comps(int **Si, int n, int m){
+  int i,j,totbasis,rk;
+  int **basis;
+  int **basisT;
+  int **mat;
+
+  int **CC=NULL;
+  int totCC=0;
+
+
+  basisT=poskerbasis(Si,n,m,&totbasis,&rk);
+  basis=transposemat(basisT,totbasis,m);
+
+  mat=imatrix(0,totbasis-1,0,totbasis-1);
+  inittozero(mat,totbasis,totbasis);
+  for(i=0;i<totbasis-1;i++){
+    for(j=i+1;j<totbasis;j++){
+      if(overlap(basisT[i], basisT[j], m)){//overlapping support
+	mat[i][j]=1;mat[j][i]=1;//add in edge
+      }
+    }
+  }
+  
+  CC=Tarjan(mat,totbasis,&totCC);
+  
+  free_imat(basisT,totbasis);
+  free_imat(CC,totCC);
+  free_imatrix(basis, 0, m-1, 0, totbasis-1);
+  free_imatrix(mat, 0, totbasis-1, 0, totbasis-1);
+  return totCC;
+}
+
+
+
+//overloading di6 input
+int fluxcone_comps(char *di6, int n, int m){
+  int **S, **Sl;
+  int ret;
+  di6toSSl(di6, n, m, 0, &S, &Sl);
+  ret=fluxcone_comps(S,n,m);
+  free_imatrix(S, 0, n-1, 0, m-1);
+  free_imatrix(Sl, 0, n-1, 0, m-1);
+  return ret;
+}
+
+//print the number of components of the flux cone
+int printfluxcone_comps(char *di6, int n, int m){
+  int **S, **Sl;
+  int ret;
+  di6toSSl(di6, n, m, 0, &S, &Sl);
+  ret=fluxcone_comps(S,n,m);
+  free_imatrix(S, 0, n-1, 0, m-1);
+  free_imatrix(Sl, 0, n-1, 0, m-1);
+  fprintf(stderr, "flux cone components: %d\n", ret);
+  return ret;
+}

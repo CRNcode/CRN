@@ -1,17 +1,20 @@
 
 //General filters
-*rank: rank of network (requires the rank as an additional argument)
-*notrank: rank not equal to (requires the rank as an additional argument)
-*leftrank: rank of reactant matrix (requires the rank as an additional argument)
-*notleftrank: rank of reactant matrix not equal to (requires the rank as an additional argument)
-*leftrank1: rank of reactant matrix augmented with a row of ones (requires the rank as an additional argument)
-*notleftrank1: rank of reactant matrix augmented with a row of ones not equal to (requires the rank as an additional argument)
+*rank: network must have rank <val> (requires the rank as an additional argument)
+*notrank: network must not have rank <val> (requires the rank as an additional argument)
+*leftrank: rank of reactant matrix must be <val> (requires the rank as an additional argument)
+*notleftrank: rank of reactant matrix must not equal <val> (requires the rank as an additional argument)
+*leftrank1: rank of reactant matrix augmented with a row of ones must be <val> (requires the rank as an additional argument)
+*notleftrank1: rank of reactant matrix augmented with a row of ones must not be <val> (requires the rank as an additional argument)
 *sources: number of source complexes (requires this number as an additional argument)
 *notsources: number of sources different from (requires this number as an additional argument)
 *sourcesplus: at least this number of source complexes (requires this number as an additional argument)
 *notsourcesplus: fewer than this number of sources (requires this number as an additional argument)
-*molecularity: molecularity must be exactly equal to <val> (e.g., to exclude linear networks)
-*notmolecularity: molecularity must not be <val> 
+*molecularity: molecularity must be <val> (e.g., to exclude linear networks from quadratic ones)
+*notmolecularity: molecularity must not be <val>
+*fluxconecomps: components in the fundamental partition of the positive flux cone must be <val>
+*notfluxconecomps: components in the fundamental partition of the positive flux cone must not be <val>
+*fluxconecompsplus: components in the fundamental partition of the positive flux cone must be >= <val>
 affdepsources: the source complexes are affinely dependent
 notaffdepsources: the source complexes are affinely independent
 DN or dynnontriv:  dynamically nontrivial (a strictly positive vector in the kernel of the irreversible stoichiometric matrix)
@@ -36,10 +39,6 @@ trivspec: networks in which some species has no net production or consumption in
 nottrivspec: networks in which every species has net production or consumption in some reaction
 structpersist: the network has no critical siphons
 notstructpersist: the networks has critical siphons 
-endotactic: the network is endotactic
-notendotactic: the network fails to be endotactic
-strongendo: strongly endotactic
-notstrongendo: not strongly endotactic
 printsiphons: pseudotest to print out the siphons of a network
 printmolecularity: pseudotest to print out a report on the molecularities of the reactions in the network
 repeatedreacs: the network has repeated reactions
@@ -152,6 +151,7 @@ printJMAeq: print the mass action Jacobian matrix in canonical form (QD_z)
 printQ: print the first factor in the MA Jacobian matrix in canonical form ("Q")
 printA1inv: print the inverse of [A|1] assuming square & nonsingular (A := Gamma_l^t)
 printsolvability: print a minimal integer vector in ker[A|1]^t, assuming ker[A|1]^t is 1-D (A := Gamma_l^t)
+printfluxconecomps: prints the number of components in the fundamental partition of the positive flux cone
 *JMArealspec: prints out information on the real spectrum of the mass action Jacobian matrix at equilibria
 linkageclasses: prints the number of linkage classes to stdout
 deficiency: prints the deficiency to stdout

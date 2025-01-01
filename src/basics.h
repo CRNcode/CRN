@@ -103,6 +103,7 @@ int isinlist(int i, int ilst[], int tot);
 int isinlist(long i, long ilst[], int tot);
 int areequal(int *vec1, int *vec2, int n);
 int areequal(double *vec1, double *vec2, int n);
+int overlap(int *vec1, int *vec2, int n);
 bool issubvec(bool *vec1, bool *vec2, int n);
 int issubvec(bool *vec1, bool **vec2, int strt, int finish, int n);
 // Is the ordered int list A a subset of the ordered int list B?
